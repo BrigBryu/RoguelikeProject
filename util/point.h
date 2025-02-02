@@ -1,12 +1,12 @@
 #ifndef POINT_H
 #define POINT_H
 
-struct Point {
+typedef struct{
     int x;
     int y;
-};
+} Point;
 
 // Interface
-struct Point createPoint(int x, int y);
-void printDebug(struct Point p);
+Point createPoint(int x, int y);
+void printDebug(Point p);
 #endif

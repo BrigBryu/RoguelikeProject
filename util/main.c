@@ -2,7 +2,7 @@
 #include "point.h"
 
 int main() {
-    struct Point p = createPoint(10,10);
+    Point p = createPoint(10,10);
     printDebug(p);
     return 0;
 }
