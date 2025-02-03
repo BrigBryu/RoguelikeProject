@@ -14,7 +14,7 @@ typedef struct{
     int hardness;
 } Tile;
 Tile createTile(TileType type);
-void renderTile(Tile* t);
+void renderTile(Tile* t, int row, int col);
 char getCharacter(Tile* t);
 
 #endif
