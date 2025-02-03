@@ -26,20 +26,34 @@ int rectangleContainsCord(Rectangle* rec, int x, int y) {
     }
     return 0;  // outside the rectangle
 }
-
-int rectangleIntersectsRectangle(Rectangle* r1, Rectangle* r2) {
-    // left or right
-    if (r1->bottomLeft.x + r1->width < r2->bottomLeft.x || 
-        r2->bottomLeft.x + r2->width < r1->bottomLeft.x) {
-        return 0; // No intersec
+//if r1 and r2 are inside
+int rectanglesOverlap(Rectangle* r1, Rectangle* r2) {
+    if (r1->bottomLeft.x < r2->bottomLeft.x + r2->width &&
+        r1->bottomLeft.x + r1->width > r2->bottomLeft.x &&
+        r1->bottomLeft.y < r2->bottomLeft.y + r2->height &&
+        r1->bottomLeft.y + r1->height > r2->bottomLeft.y) {
+        return 1;
     }
+    return 0;
+}
+//if r1 expanded by 1 tile inclusivily intersects with r2 they touch
+int rectanglesTouch(Rectangle* r1, Rectangle* r2) {
+    int r1Left   = r1->bottomLeft.x - 1;
+    int r1Bottom = r1->bottomLeft.y - 1;
+    int r1Right  = r1->bottomLeft.x + r1->width + 1;
+    int r1Top    = r1->bottomLeft.y + r1->height + 1;
 
-    // above or below
-    if (r1->bottomLeft.y + r1->height < r2->bottomLeft.y || 
-        r2->bottomLeft.y + r2->height < r1->bottomLeft.y) {
-        return 0; // No intersect
+    int r2Left   = r2->bottomLeft.x;
+    int r2Bottom = r2->bottomLeft.y;
+    int r2Right  = r2->bottomLeft.x + r2->width;
+    int r2Top    = r2->bottomLeft.y + r2->height;
+
+
+    if (r2Left <= r1Right &&
+        r2Right >= r1Left &&
+        r2Bottom <= r1Top &&
+        r2Top >= r1Bottom) {
+        return 1;
     }
-
-
-    return 1; //intersect
+    return 0;
 }
