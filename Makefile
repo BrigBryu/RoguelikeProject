@@ -6,7 +6,7 @@ CFLAGS = -g -Wall -I$(GAMEOBJECTS_DIR) -I$(UTIL_DIR)
 UTIL_DIR = util
 GAMEOBJECTS_DIR = gameObjects
 
-# Source files
+# files
 SRC = gameScreen.c \
       $(UTIL_DIR)/point.c $(UTIL_DIR)/rectangle.c \
       $(GAMEOBJECTS_DIR)/dungeon.c $(GAMEOBJECTS_DIR)/tile.c
@@ -14,7 +14,7 @@ SRC = gameScreen.c \
 # Object files
 OBJ = $(SRC:.c=.o)
 
-# Output executable
+# executable name
 TARGET = mapMaker
 
 # Build target

@@ -1,7 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "dungeon.h"
 
 int main(){
+    srand(time(NULL));
     Dungeon dungeon;
     printf("Before all rock init:\n");
     renderDungeon(&dungeon);
