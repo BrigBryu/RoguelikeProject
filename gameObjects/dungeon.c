@@ -56,7 +56,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
         maxY = p1->y;
     }
 
-    //if (rand() % 2 == 0) {
+    if (rand() % 2 == 0) {
         // Carve horizontal then vertical
         for (int x = minX; x <= maxX; x++) {
             if (dungeon->tiles[p1->y][x].type == ROCK)
@@ -66,17 +66,17 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
             if (dungeon->tiles[y][p2->x].type == ROCK)
                 dungeon->tiles[y][p2->x].type = HALL;
         }
-   /* } else {
+    } else {
         // Carve vertical then horizontal
         for (int y = minY; y <= maxY; y++) {
             if (dungeon->tiles[y][p1->x].type == ROCK)
                 dungeon->tiles[y][p1->x].type = HALL;
         }
-        for (int x = min(cx1, cx2); x <= max(cx1, cx2); x++) {
+        for (int x = minX; x <= maxX; x++) {
             if (dungeon->tiles[p2->y][x].type == ROCK)
                 dungeon->tiles[p2->y][x].type = HALL;
         }
-    }*/
+    }
 }
 
 /*
@@ -154,9 +154,76 @@ void setHalls(Dungeon* dungeon){
         carveCorridor(dungeon, &mid1, &mid2);
     }
 }
-
+//Requirements
+//atelast one stair case up and down no more than 5 each
+//Imposed rules
+//no stairs down where the player starts
+//1 stair up in the room where the player starts
+//only one stair in each room
 void populateDungeon(Dungeon* dungeon){
-    //TODO
+    int chance = rand() % 100 + 1;
+    int chanceStair;
+    if(chance < 50) {
+        chanceStair = 3;
+    } else if(chance < 75) {
+        chanceStair = 4;
+    } else {
+        chanceStair = 5;
+    }
+    int row;
+    int col;
+    int neededUpStairs = rand() % chanceStair + 1;
+    int neededDownStairs = rand() % chanceStair + 1;
+    int playerSet = 0;
+
+    Rectangle playerRoom;
+    while(
+            //all cases need for a successful generation
+            //stairs
+            dungeon->numUpStairs < neededUpStairs &&
+            dungeon->numDownStairs < neededDownStairs &&
+            //player location valid
+            playerSet != 1
+         ) {
+        row = rand() % height;
+        col = rand() % width;
+        if(dungeon->tiles[row][col].type == FLOOR) {
+            if(playerSet == 0) {
+                dungeon->tiles[row][col].type = PLAYER;
+                //Find the room the player starts in
+                for(int r = 0; r < dungeon-> numRooms; r++){
+                    if(rectangleContainsCord(&(dungeon->rooms[r]), col, row) == 1){
+                        playerRoom = dungeon->rooms[r];
+                    }
+                }
+                for(int i = -1; i < 2; i++){
+                    for(int j = -1; j < 2; j++){
+                        if(dungeon->tiles[row + i][col + j].type == FLOOR){
+                            dungeon->tiles[row + i][col + j].type= STAIR_UP;
+                            dungeon->upStairs[dungeon->numUpStairs] = createPoint(col + j, row + i);
+                            dungeon->numUpStairs++;
+                            break;
+                        }
+                    }
+                }
+                playerSet = 1;
+            } else {
+                if(dungeon->numUpStairs < neededUpStairs) {
+                    dungeon->tiles[row][col].type= STAIR_UP;
+                            dungeon->upStairs[dungeon->numUpStairs] = createPoint(col, row);
+                            dungeon->numUpStairs++;
+                } else if(dungeon->numDownStairs < neededDownStairs &&
+                        rectangleContainsCord(&playerRoom, row, col) != 1 //dont let the player spawn room have a down stair case
+                        ) {
+                            dungeon->tiles[row][col].type= STAIR_DOWN;
+                            dungeon->downStairs[dungeon->numDownStairs] = createPoint(col, row);
+                            dungeon->numDownStairs++;
+                } else {
+//Can maybe spawn monsters here????
+                }
+            }
+        }
+    }
 }
 
 void renderDungeon(Dungeon* dungeon){

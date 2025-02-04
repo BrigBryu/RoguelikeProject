@@ -17,4 +17,7 @@ int main(){
     setHalls(&dungeon);
     printf("\nAfter hall add\n");
     renderDungeon(&dungeon);
+    populateDungeon(&dungeon);
+    printf("\nAfter populate dungeon\n");
+    renderDungeon(&dungeon);
 }
