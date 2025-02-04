@@ -47,3 +47,9 @@ int rectanglesTouch(Rectangle* r1, Rectangle* r2) {
     
     return rectanglesOverlap(&expanded, r2);
 }
+
+Point getRectangleMid(Rectangle* r){
+    return createPoint(r->bottomLeft.x + r->width / 2,
+                       r->bottomLeft.y + r->height / 2);
+}
+

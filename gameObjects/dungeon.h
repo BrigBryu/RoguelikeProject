@@ -17,6 +17,7 @@ typedef struct {
 } Dungeon;
 
 Dungeon generateDungeon();
+void intiDungeon(Dungeon* dungeon);
 void setTiles(Dungeon* dungeon);
 void setRooms(Dungeon* dungeon);
 void setHalls(Dungeon* dungeon);

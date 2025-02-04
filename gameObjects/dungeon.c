@@ -3,17 +3,28 @@
 
 #include "dungeon.h"
 #include "rectangle.h"
+#include "point.h"
 
 #define width 80
 #define height 21
 
+void initDungeon(Dungeon*);
+
 Dungeon generateDungeon(){
     Dungeon dungeon;
+    initDungeon(&dungeon);
     setTiles(&dungeon);
     setRooms(&dungeon);
     setHalls(&dungeon);
     populateDungeon(&dungeon);
     return dungeon;
+}
+
+void initDungeon(Dungeon* dungeon){
+    dungeon->numRooms = 0;
+    dungeon->mc = createPoint(0,0);
+    dungeon->numDownStairs = 0;
+    dungeon->numUpStairs = 0;
 }
 
 void setTiles(Dungeon* dungeon){
@@ -26,6 +37,48 @@ void setTiles(Dungeon* dungeon){
         }
     }
 }
+
+void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
+    int minX, minY, maxX, maxY;
+    if(p1->x < p2->x){
+        minX = p1->x;
+        maxX = p2->x;
+    } else {
+        minX = p2->x;
+        maxX = p1->x;
+    }
+
+    if(p1->y < p2->y){
+        minY = p1->y;
+        maxY = p2->y;
+    } else {
+        minY = p2->y;
+        maxY = p1->y;
+    }
+
+    //if (rand() % 2 == 0) {
+        // Carve horizontal then vertical
+        for (int x = minX; x <= maxX; x++) {
+            if (dungeon->tiles[p1->y][x].type == ROCK)
+                dungeon->tiles[p1->y][x].type = HALL;
+        }
+        for (int y = minY; y <= maxY; y++) {
+            if (dungeon->tiles[y][p2->x].type == ROCK)
+                dungeon->tiles[y][p2->x].type = HALL;
+        }
+   /* } else {
+        // Carve vertical then horizontal
+        for (int y = minY; y <= maxY; y++) {
+            if (dungeon->tiles[y][p1->x].type == ROCK)
+                dungeon->tiles[y][p1->x].type = HALL;
+        }
+        for (int x = min(cx1, cx2); x <= max(cx1, cx2); x++) {
+            if (dungeon->tiles[p2->y][x].type == ROCK)
+                dungeon->tiles[p2->y][x].type = HALL;
+        }
+    }*/
+}
+
 /*
  * Room requireemtns
  * - area is 21 row by 80 col
@@ -45,9 +98,7 @@ void setRooms(Dungeon* dungeon){
     int numTries = 0;
     while(numRoomsPlaced < (6 + extraRooms)) {
         numTries++;
-        if(numTries % 75 == 0) {
-            setTiles(dungeon); //reset dungeon->tiles
-        } else if(numTries % 25 == 0 && extraRooms > 0){
+        if(numTries % 25 == 0 && extraRooms > 0){
             extraRooms--;
         }
 
@@ -86,7 +137,22 @@ void setRooms(Dungeon* dungeon){
 }
 
 void setHalls(Dungeon* dungeon){
-    //TODO
+    for(int i = 1; i < dungeon->numRooms; i++){
+        Point mid1 = getRectangleMid(&(dungeon->rooms[i]));
+        Point mid2;
+        double closestDist = 9999;
+        int closestIndex = 0;
+        for(int j = 0; j < i; j++){
+            mid2 = getRectangleMid(&(dungeon->rooms[j]));
+            double dist = getDistance(&mid1, &mid2);
+            if(dist < closestDist){
+                closestDist = dist;
+                closestIndex = j;
+            }
+        }
+        mid2 = getRectangleMid(&(dungeon->rooms[closestIndex]));
+        carveCorridor(dungeon, &mid1, &mid2);
+    }
 }
 
 void populateDungeon(Dungeon* dungeon){

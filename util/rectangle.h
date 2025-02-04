@@ -28,4 +28,5 @@ int rectanglesTouch(Rectangle* r1, Rectangle* r2);
 
 void printDebugRectangle(Rectangle r);
 
+Point getRectangleMid(Rectangle* r);
 #endif
