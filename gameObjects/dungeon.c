@@ -179,6 +179,8 @@ void populateDungeon(Dungeon* dungeon){
     for(int i = 0; i < dungeon->numRooms; i++){
         roomHasStair[i] = 0; //false all have no
     }
+    int playerRoomHasStairIndex = -1;
+    int counter = 0;
     while(
             //all cases need for a successful generation
             //stairs
@@ -188,6 +190,14 @@ void populateDungeon(Dungeon* dungeon){
             playerSet != 1
 //monster validation later ???????
          ) {
+        counter++;
+        if(counter > 200) {
+            for(int i = 0; i < dungeon-> numRooms; i++){
+                if(i != playerRoomHasStairIndex) {
+                    roomHasStair[i] = 0; //allow all rooms to place multiple stairs accept the room the player is started in                       
+                }
+            }
+        }
         row = rand() % height;
         col = rand() % width;
         if(dungeon->tiles[row][col].type == FLOOR) {
@@ -198,6 +208,7 @@ void populateDungeon(Dungeon* dungeon){
                     if(rectangleContainsCord(&(dungeon->rooms[r]), col, row) == 1){
                         //playerRoom = dungeon->rooms[r];
                         roomHasStair[r] = 1;
+                        playerRoomHasStairIndex = r;
                     }
                 }
                 int stairPlaced = 0;

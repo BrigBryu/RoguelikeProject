@@ -4,8 +4,10 @@
 #include "dungeon.h"
 
 int main(){
+    
     srand(time(NULL));
     Dungeon dungeon;
+    /*
     printf("Before all rock init:\n");
     renderDungeon(&dungeon);
     setTiles(&dungeon);
@@ -20,4 +22,10 @@ int main(){
     populateDungeon(&dungeon);
     printf("\nAfter populate dungeon\n");
     renderDungeon(&dungeon);
+    */
+    //for(int i = 0; i < 10000; i++){
+    //    printf("\n\nCreating the %d map:\n", i);
+        dungeon = generateDungeon();
+        renderDungeon(&dungeon);
+    //}
 }
