@@ -175,15 +175,18 @@ void populateDungeon(Dungeon* dungeon){
     int neededUpStairs = rand() % chanceStair + 1;
     int neededDownStairs = rand() % chanceStair + 1;
     int playerSet = 0;
-
-    Rectangle playerRoom;
+    int roomHasStair[dungeon->numRooms];
+    for(int i = 0; i < dungeon->numRooms; i++){
+        roomHasStair[i] = 0; //false all have no
+    }
     while(
             //all cases need for a successful generation
             //stairs
-            dungeon->numUpStairs < neededUpStairs &&
-            dungeon->numDownStairs < neededDownStairs &&
+            dungeon->numUpStairs < neededUpStairs ||
+            dungeon->numDownStairs < neededDownStairs ||
             //player location valid
             playerSet != 1
+//monster validation later ???????
          ) {
         row = rand() % height;
         col = rand() % width;
@@ -193,34 +196,48 @@ void populateDungeon(Dungeon* dungeon){
                 //Find the room the player starts in
                 for(int r = 0; r < dungeon-> numRooms; r++){
                     if(rectangleContainsCord(&(dungeon->rooms[r]), col, row) == 1){
-                        playerRoom = dungeon->rooms[r];
+                        //playerRoom = dungeon->rooms[r];
+                        roomHasStair[r] = 1;
                     }
                 }
-                for(int i = -1; i < 2; i++){
-                    for(int j = -1; j < 2; j++){
-                        if(dungeon->tiles[row + i][col + j].type == FLOOR){
-                            dungeon->tiles[row + i][col + j].type= STAIR_UP;
+                int stairPlaced = 0;
+                for (int i = -1; i <= 1 && stairPlaced != 1; i++) {
+                    for (int j = -1; j <= 1 && stairPlaced != 1; j++) {
+                        if (i == 0 && j == 0)
+                            continue;
+                        if (dungeon->tiles[row + i][col + j].type == FLOOR) {
+                            dungeon->tiles[row + i][col + j].type = STAIR_UP;
                             dungeon->upStairs[dungeon->numUpStairs] = createPoint(col + j, row + i);
                             dungeon->numUpStairs++;
-                            break;
+                            stairPlaced = 1;
                         }
                     }
                 }
                 playerSet = 1;
             } else {
-                if(dungeon->numUpStairs < neededUpStairs) {
+                int roomIndexAddingStairTo;
+                roomIndexAddingStairTo = -1;
+                for(int i = 0; i < dungeon->numRooms; i++){
+                    if(roomHasStair[i] == 0 && 
+                            rectangleContainsCord(&(dungeon->rooms[i]),col,row) == 1) {
+                        roomIndexAddingStairTo = i;
+                    }
+                }
+                if(roomIndexAddingStairTo != -1 &&
+                        dungeon->numUpStairs < neededUpStairs) {
+                    roomHasStair[roomIndexAddingStairTo] = 1;
                     dungeon->tiles[row][col].type= STAIR_UP;
-                            dungeon->upStairs[dungeon->numUpStairs] = createPoint(col, row);
-                            dungeon->numUpStairs++;
-                } else if(dungeon->numDownStairs < neededDownStairs &&
-                        rectangleContainsCord(&playerRoom, row, col) != 1 //dont let the player spawn room have a down stair case
-                        ) {
-                            dungeon->tiles[row][col].type= STAIR_DOWN;
-                            dungeon->downStairs[dungeon->numDownStairs] = createPoint(col, row);
-                            dungeon->numDownStairs++;
+                    dungeon->upStairs[dungeon->numUpStairs] = createPoint(col, row);
+                    dungeon->numUpStairs++;
+                } else if(roomIndexAddingStairTo != -1 &&
+                    dungeon->numDownStairs < neededDownStairs) {
+                    roomHasStair[roomIndexAddingStairTo] = 1;
+                    dungeon->tiles[row][col].type= STAIR_DOWN;
+                    dungeon->downStairs[dungeon->numDownStairs] = createPoint(col, row);
+                    dungeon->numDownStairs++;
                 } else {
 //Can maybe spawn monsters here????
-                }
+                } 
             }
         }
     }
