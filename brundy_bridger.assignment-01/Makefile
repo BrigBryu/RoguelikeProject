@@ -1,30 +1,23 @@
-# Compiler
 CC = gcc
 CFLAGS = -g -Wall -I$(GAMEOBJECTS_DIR) -I$(UTIL_DIR)
 
-# Directories
+#file stuff
 UTIL_DIR = util
 GAMEOBJECTS_DIR = gameObjects
-
-# files
 SRC = gameScreen.c \
       $(UTIL_DIR)/point.c $(UTIL_DIR)/rectangle.c \
       $(GAMEOBJECTS_DIR)/dungeon.c $(GAMEOBJECTS_DIR)/tile.c
 
-# Object files
+# Other
 OBJ = $(SRC:.c=.o)
-
-# executable name
 TARGET = mapMaker
 
-# Build target
+# first rule
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
 
-# Compile source files into object files
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean target
 clean:
 	rm -f $(OBJ) $(TARGET)

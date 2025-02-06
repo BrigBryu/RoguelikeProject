@@ -7,18 +7,79 @@
 
 #define width 80
 #define height 21
+#define MAX_HALL_TILES_THRESHOLD 70
+#define SURRONDING_HALL_MAX 3
+#define MAX_HORIZONTAL_IN_A_ROW 10
 
 void initDungeon(Dungeon*);
+int validateDungeon(Dungeon* dungeon);
 
 Dungeon generateDungeon(){
     Dungeon dungeon;
-    initDungeon(&dungeon);
-    setTiles(&dungeon);
-    setRooms(&dungeon);
-    setHalls(&dungeon);
-    populateDungeon(&dungeon);
+    int ranOnce = 0;
+    while(ranOnce == 0 || validateDungeon(&dungeon) != 1) {
+        initDungeon(&dungeon);
+        setTiles(&dungeon);
+        setRooms(&dungeon);
+        setHalls(&dungeon);
+        populateDungeon(&dungeon);
+        ranOnce = 1;
+    }
     return dungeon;
 }
+
+int validateDungeon(Dungeon* dungeon) {
+    int hallCount = 0;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (dungeon->tiles[i][j].type == HALL) {
+                hallCount++;
+                int surroundingHallCount = 0;
+                for (int di = -1; di <= 1; di++) {
+                    for (int dj = -1; dj <= 1; dj++) {
+                        if (di == 0 && dj == 0)
+                            continue;
+                        
+                        int ni = i + di;
+                        int nj = j + dj;
+                        //check bounds 
+                        
+                        if (ni >= 0 && ni < height && nj >= 0 && nj < width) {
+                            if (dungeon->tiles[ni][nj].type == HALL)
+                                surroundingHallCount++;
+                        }
+                    }
+                }
+                if (surroundingHallCount > SURRONDING_HALL_MAX) {
+                    return 0;
+                }
+            }
+        }
+    }
+
+
+    for (int i = 0; i < height; i++) {
+        int rowHallCount = 0;
+        for (int j = 0; j < width; j++) {
+            if (dungeon->tiles[i][j].type == HALL) {
+                rowHallCount++;
+            }
+        }
+        if (rowHallCount > MAX_HORIZONTAL_IN_A_ROW) {
+            return 0;
+        }
+    }
+    
+    //printf("Hall tile count: %d\n", hallCount);
+    //renderDungeon(dungeon);
+    if(hallCount <= MAX_HALL_TILES_THRESHOLD){
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+
 
 void initDungeon(Dungeon* dungeon){
     dungeon->numRooms = 0;
@@ -38,6 +99,111 @@ void setTiles(Dungeon* dungeon){
     }
 }
 
+void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
+    int curX = p1->x;
+    int curY = p1->y;
+    int targetX = p2->x;
+    int targetY = p2->y;
+
+    if (dungeon->tiles[curY][curX].type == ROCK)
+        dungeon->tiles[curY][curX].type = HALL;
+
+    while (curX != targetX || curY != targetY) {
+        if (curX != targetX && curY != targetY) {
+            if (rand() % 2 == 0) {
+                int step = (rand() % 2) + 1;
+                if (targetX > curX) {
+                    int nextX = curX + step;
+                    if (nextX > targetX)
+                        nextX = targetX;
+                    for (int x = curX + 1; x <= nextX; x++) {
+                        if (dungeon->tiles[curY][x].type == ROCK)
+                            dungeon->tiles[curY][x].type = HALL;
+                    }
+                    curX = nextX;
+                } else {
+                    int nextX = curX - step;
+                    if (nextX < targetX)
+                        nextX = targetX;
+                    for (int x = curX - 1; x >= nextX; x--) {
+                        if (dungeon->tiles[curY][x].type == ROCK)
+                            dungeon->tiles[curY][x].type = HALL;
+                    }
+                    curX = nextX;
+                }
+            } else {
+                // Step vertically.
+                int step = (rand() % 2) + 1;
+                if (targetY > curY) {
+                    int nextY = curY + step;
+                    if (nextY > targetY)
+                        nextY = targetY;
+                    for (int y = curY + 1; y <= nextY; y++) {
+                        if (dungeon->tiles[y][curX].type == ROCK)
+                            dungeon->tiles[y][curX].type = HALL;
+                    }
+                    curY = nextY;
+                } else {
+                    int nextY = curY - step;
+                    if (nextY < targetY)
+                        nextY = targetY;
+                    for (int y = curY - 1; y >= nextY; y--) {
+                        if (dungeon->tiles[y][curX].type == ROCK)
+                            dungeon->tiles[y][curX].type = HALL;
+                    }
+                    curY = nextY;
+                }
+            }
+        }
+        // only horizontal movement need
+        else if (curX != targetX) {
+            int step = (rand() % 2) + 1;
+            if (targetX > curX) {
+                int nextX = curX + step;
+                if (nextX > targetX)
+                    nextX = targetX;
+                for (int x = curX + 1; x <= nextX; x++) {
+                    if (dungeon->tiles[curY][x].type == ROCK)
+                        dungeon->tiles[curY][x].type = HALL;
+                }
+                curX = nextX;
+            } else {
+                int nextX = curX - step;
+                if (nextX < targetX)
+                    nextX = targetX;
+                for (int x = curX - 1; x >= nextX; x--) {
+                    if (dungeon->tiles[curY][x].type == ROCK)
+                        dungeon->tiles[curY][x].type = HALL;
+                }
+                curX = nextX;
+            }
+        }
+        // Only vertical movement need
+        else if (curY != targetY) {
+            int step = (rand() % 2) + 1;
+            if (targetY > curY) {
+                int nextY = curY + step;
+                if (nextY > targetY)
+                    nextY = targetY;
+                for (int y = curY + 1; y <= nextY; y++) {
+                    if (dungeon->tiles[y][curX].type == ROCK)
+                        dungeon->tiles[y][curX].type = HALL;
+                }
+                curY = nextY;
+            } else {
+                int nextY = curY - step;
+                if (nextY < targetY)
+                    nextY = targetY;
+                for (int y = curY - 1; y >= nextY; y--) {
+                    if (dungeon->tiles[y][curX].type == ROCK)
+                        dungeon->tiles[y][curX].type = HALL;
+                }
+                curY = nextY;
+            }
+        }
+    }
+}
+/*
 void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
     int minX, minY, maxX, maxY;
     if(p1->x < p2->x){
@@ -78,7 +244,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
         }
     }
 }
-
+*/
 /*
  * Room requireemtns
  * - area is 21 row by 80 col
