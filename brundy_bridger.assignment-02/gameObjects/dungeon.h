@@ -5,14 +5,14 @@
 #include "rectangle.h"
 #include "tile.h"
 
-typedef struct {
-    Rectangle rooms[25];
+typedef struct { //increased num of stuff for asingment 2 can change later
+    Rectangle rooms[50];
     int numRooms;
     Tile tiles[21][80];
     Point mc;
-    Point downStairs[10];
+    Point downStairs[100];
     int numDownStairs;
-    Point upStairs[10];
+    Point upStairs[100];
     int numUpStairs;
 
 } Dungeon;
