@@ -4,12 +4,10 @@ This dungeon generator creates a procedurally generated 80x21 dungeon conforming
 - Immutable rock borders surrounding the dungeon.
 - At least one up and one down staircase, ensuring all floors are connected.
 - A fully connected dungeon all rooms are accessable
-- Corridors are not perfectly straight and include slight directional changes for realism
 - Each room can contain at most one staircase unless additional stairs are required
 - The starting room always contains a staircase back up adjacent to the player
 - There is a cap on number of hallway tiles, number of hallway tiles in a row, number of hallway tiles in a single area becasue I think it makes the dungeon look better
 Key functions:
 - generateDungeon(), renderDungeon()
-- File names: dungeon.h, dungeon.c, rectangle.h, point.h 
+- File names: dungeon.h, dungeon.c, rectangle.h, point.h
 
-This generator will serve as a base for future extensions.  

@@ -10,11 +10,11 @@ SRC = gameScreen.c \
 
 # Other
 OBJ = $(SRC:.c=.o)
-TARGET = mapMaker
+TARGET = assignment01
 
 # first rule
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) -lm
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
