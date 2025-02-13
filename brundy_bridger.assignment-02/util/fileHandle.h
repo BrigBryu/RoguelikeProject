@@ -4,6 +4,6 @@
 #include "dungeon.h"
 
 void writeDungeon(Dungeon *dungeon);
-void readDungeon(Dungeon *dungeon);
+void readDungeon(Dungeon *dungeon, char *testDungeon);
 
 #endif

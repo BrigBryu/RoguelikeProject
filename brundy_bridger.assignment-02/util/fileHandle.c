@@ -5,6 +5,59 @@
 #include <arpa/inet.h>
 #include "fileHandle.h"
 
+static void postProcessDungeon(Dungeon* d)
+{
+    // 1. Initialize tiles based on hardness
+    for (int row = 0; row < 21; row++) {
+        for (int col = 0; col < 80; col++) {
+            int h = d->tiles[row][col].hardness;
+            if (h == 0) {
+                // By default, treat zero-hardness cells as corridor/hall
+                d->tiles[row][col].type = HALL;
+            } else {
+                // Non-zero hardness is rock
+                d->tiles[row][col].type = ROCK;
+            }
+        }
+    }
+
+    // 2. Overwrite with FLOOR for each room rectangle
+    for (int r = 0; r < d->numRooms; r++) {
+        Rectangle *room = &d->rooms[r];
+        // Check every tile to see if it's inside this room:
+        for (int row = 0; row < 21; row++) {
+            for (int col = 0; col < 80; col++) {
+                if (rectangleContainsCord(room, col, row)) {
+                    d->tiles[row][col].type = FLOOR;
+                    d->tiles[row][col].hardness = 0;
+                }
+            }
+        }
+    }
+
+
+    // 4. Place up stairs
+    for (int i = 0; i < d->numUpStairs; i++) {
+        int sx = d->upStairs[i].x;
+        int sy = d->upStairs[i].y;
+        d->tiles[sy][sx].type = STAIR_UP;
+    }
+
+    // 5. Place down stairs
+    for (int i = 0; i < d->numDownStairs; i++) {
+        int sx = d->downStairs[i].x;
+        int sy = d->downStairs[i].y;
+        d->tiles[sy][sx].type = STAIR_DOWN;
+    }
+
+        // 3. Place the player
+    int px = d->mc.x;
+    int py = d->mc.y;
+    d->tiles[py][px].type = PLAYER;
+
+}
+
+
 void writeDungeon(Dungeon *dungeon){
     //Set FILE
     char *home;
@@ -97,9 +150,12 @@ void writeDungeon(Dungeon *dungeon){
     for(int i = 0; i < numRooms; i++){
         uint8_t roomHeight = (uint8_t) (dungeon -> rooms[i].height); 
         uint8_t roomWidth = (uint8_t) (dungeon->rooms[i].width);
+        uint8_t roomX = (uint8_t) (dungeon->rooms[i].bottomLeft.x);
 
-        uint8_t roomX = (uint8_t) (dungeon->rooms[i].bottomLeft.x) + roomHeight; //needs to be top left for saving
-        uint8_t roomY = (uint8_t) (dungeon->rooms[i].bottomLeft.y);
+        //uint8_t roomX = (uint8_t) (dungeon->rooms[i].bottomLeft.x); //needs to be top left for saving
+
+        uint8_t roomY = (uint8_t) (dungeon->rooms[i].bottomLeft.y); //+ roomHeight;
+
 
         if(fwrite(&roomX, sizeof(uint8_t), 1, f) != 1){
             fprintf(stderr, "issue writing room x");
@@ -195,38 +251,40 @@ void writeDungeon(Dungeon *dungeon){
     fclose(f);
 }
 
-void readDungeon(Dungeon *dungeon) {
-    const char *home_env = getenv("HOME");
-    if (!home_env) {
-        fprintf(stderr, "HOME environment variable not set.\n");
-        exit(EXIT_FAILURE);
+void readDungeon(Dungeon *dungeon, char *testDungeon) {
+    char file_path[256];
+
+    if (testDungeon != NULL) {
+        // Use the provided dungeon filename from the saved_dungeons folder.
+        snprintf(file_path, sizeof(file_path), "saved_dungeons/%s", testDungeon);
+    } else {
+        // Use the default dungeon file from $HOME/.rlg327/dungeon.
+        const char *home_env = getenv("HOME");
+        if (!home_env) {
+            fprintf(stderr, "HOME environment variable not set.\n");
+            exit(EXIT_FAILURE);
+        }
+        snprintf(file_path, sizeof(file_path), "%s/.rlg327/dungeon", home_env);
     }
 
-    char file_path[256];
-    snprintf(file_path, sizeof(file_path), "%s/.rlg327/dungeon", home_env);
-
-    FILE *f = fopen(file_path, "rb");  // Open the file for binary reading.
+    FILE *f = fopen(file_path, "rb");
     if (f == NULL) {
-        fprintf(stderr, "Can't open the dungeon file for reading.\n");
+        fprintf(stderr, "Can't open the dungeon file for reading: %s\n", file_path);
         exit(EXIT_FAILURE);
     }
 
     /* --- Read Header --- */
-
-    // 1. Read the 12-byte marker.
     char marker[12];
     if (fread(marker, sizeof(char), 12, f) != 12) {
         fprintf(stderr, "Error reading dungeon file marker.\n");
         fclose(f);
         exit(EXIT_FAILURE);
     }
-    if (memcmp(marker, "RLG327-S2025", 12) != 0) {
-        fprintf(stderr, "Invalid dungeon file marker.\n");
-        fclose(f);
-        exit(EXIT_FAILURE);
-    }
 
-    // 2. Read the 4-byte version and convert from network order.
+    //printf("Marker read: %.*s\n", 12, marker);
+
+
+
     uint32_t netVersion;
     if (fread(&netVersion, sizeof(uint32_t), 1, f) != 1) {
         fprintf(stderr, "Error reading version.\n");
@@ -234,9 +292,11 @@ void readDungeon(Dungeon *dungeon) {
         exit(EXIT_FAILURE);
     }
     uint32_t version = ntohl(netVersion);
-    // Optionally, verify that version is one you support.
 
-    // 3. Read the 4-byte file size and convert.
+    //printf("Version (net): 0x%08x, after ntohl: %u\n",
+     //  netVersion, version);
+
+
     uint32_t netFileSize;
     if (fread(&netFileSize, sizeof(uint32_t), 1, f) != 1) {
         fprintf(stderr, "Error reading file size.\n");
@@ -244,9 +304,11 @@ void readDungeon(Dungeon *dungeon) {
         exit(EXIT_FAILURE);
     }
     uint32_t fileSize = ntohl(netFileSize);
-    // Optionally, you may want to check that fileSize is as expected.
 
-    // 4. Read the player (PC) coordinates (1 byte each for x and y).
+   // printf("File size (net): 0x%08x, after ntohl: %u\n",
+   //    netFileSize, fileSize);
+
+
     uint8_t playerX, playerY;
     if (fread(&playerX, sizeof(uint8_t), 1, f) != 1 ||
         fread(&playerY, sizeof(uint8_t), 1, f) != 1) {
@@ -257,9 +319,9 @@ void readDungeon(Dungeon *dungeon) {
     dungeon->mc.x = playerX;
     dungeon->mc.y = playerY;
 
-    /* --- Read Dungeon Map --- */
+   // printf("PC coords read: x=%u, y=%u\n", (unsigned) playerX, (unsigned) playerY);
 
-    // The dungeon hardness map is 21 rows x 80 columns (each 1 byte).
+    /* --- Read Dungeon Map --- */
     for (int i = 0; i < 21; i++) {
         for (int j = 0; j < 80; j++) {
             uint8_t hardness;
@@ -269,12 +331,11 @@ void readDungeon(Dungeon *dungeon) {
                 exit(EXIT_FAILURE);
             }
             dungeon->tiles[i][j].hardness = hardness;
+            //printf("Hardness row0 col%2d = %u\n", j, (unsigned) hardness);
         }
     }
 
     /* --- Read Room Data --- */
-
-    // 1. Read the number of rooms (16-bit, network order).
     uint16_t netNumRooms;
     if (fread(&netNumRooms, sizeof(uint16_t), 1, f) != 1) {
         fprintf(stderr, "Error reading number of rooms.\n");
@@ -284,7 +345,6 @@ void readDungeon(Dungeon *dungeon) {
     uint16_t numRooms = ntohs(netNumRooms);
     dungeon->numRooms = numRooms;
 
-    // 2. Read each room's data: 4 bytes per room (x, y, width, height).
     for (int i = 0; i < numRooms; i++) {
         uint8_t roomX, roomY, roomWidth, roomHeight;
         if (fread(&roomX, sizeof(uint8_t), 1, f) != 1 ||
@@ -295,16 +355,16 @@ void readDungeon(Dungeon *dungeon) {
             fclose(f);
             exit(EXIT_FAILURE);
         }
-        // Set room data. Adjust conversion if your internal representation differs.
+        //dungeon->rooms[i].bottomLeft.x = roomX;
+        //dungeon->rooms[i].bottomLeft.y = roomY - roomHeight;
         dungeon->rooms[i].bottomLeft.x = roomX;
-        dungeon->rooms[i].bottomLeft.y = roomY;
+        //dungeon->rooms[i].bottomLeft.y = roomY + (roomHeight - 1);
+        dungeon->rooms[i].bottomLeft.y = roomY;//(20 - roomY) - (roomHeight - 1);
         dungeon->rooms[i].width = roomWidth;
         dungeon->rooms[i].height = roomHeight;
     }
 
     /* --- Read Staircase Data --- */
-
-    // 1. Read the number of up staircases (16-bit, network order).
     uint16_t netNumUpStairs;
     if (fread(&netNumUpStairs, sizeof(uint16_t), 1, f) != 1) {
         fprintf(stderr, "Error reading number of up staircases.\n");
@@ -314,7 +374,6 @@ void readDungeon(Dungeon *dungeon) {
     uint16_t numUpStairs = ntohs(netNumUpStairs);
     dungeon->numUpStairs = numUpStairs;
 
-    // 2. Read each up staircase's coordinates (x and y, 1 byte each).
     for (int i = 0; i < numUpStairs; i++) {
         uint8_t stairX, stairY;
         if (fread(&stairX, sizeof(uint8_t), 1, f) != 1 ||
@@ -327,7 +386,6 @@ void readDungeon(Dungeon *dungeon) {
         dungeon->upStairs[i].y = stairY;
     }
 
-    // 3. Read the number of down staircases (16-bit, network order).
     uint16_t netNumDownStairs;
     if (fread(&netNumDownStairs, sizeof(uint16_t), 1, f) != 1) {
         fprintf(stderr, "Error reading number of down staircases.\n");
@@ -337,7 +395,6 @@ void readDungeon(Dungeon *dungeon) {
     uint16_t numDownStairs = ntohs(netNumDownStairs);
     dungeon->numDownStairs = numDownStairs;
 
-    // 4. Read each down staircase's coordinates (x and y, 1 byte each).
     for (int i = 0; i < numDownStairs; i++) {
         uint8_t stairX, stairY;
         if (fread(&stairX, sizeof(uint8_t), 1, f) != 1 ||
@@ -351,4 +408,6 @@ void readDungeon(Dungeon *dungeon) {
     }
 
     fclose(f);
+    postProcessDungeon(dungeon);
 }
+

@@ -20,13 +20,19 @@ int rectangleContainsPoint(Rectangle* rec, Point* p){
 }
 
 int rectangleContainsCord(Rectangle* rec, int x, int y) {
-    if (x >= rec->bottomLeft.x && x <= rec->bottomLeft.x + rec->width &&
-        y >= rec->bottomLeft.y && y <= rec->bottomLeft.y + rec->height) {
-        return 1;  // inside the rectangle
+    // bottomLeft.x <= x < bottomLeft.x + width
+    // bottomLeft.y <= y < bottomLeft.y + height
+    if (x >= rec->bottomLeft.x &&
+        x <  rec->bottomLeft.x + rec->width &&
+        y >= rec->bottomLeft.y &&
+        y <  rec->bottomLeft.y + rec->height) {
+        return 1;
     }
-    return 0;  // outside the rectangle
+    return 0;
 }
+
 //if r1 and r2 are inside
+//
 int rectanglesOverlap(Rectangle* r1, Rectangle* r2) {
     if (r1->bottomLeft.x < r2->bottomLeft.x + r2->width &&
         r1->bottomLeft.x + r1->width > r2->bottomLeft.x &&

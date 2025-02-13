@@ -202,6 +202,15 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
             }
         }
     }
+
+    //Set hardness
+    for(int i = 0; i < height; i++){
+        for(int j = 0; j < width; j++){
+            if(dungeon->tiles[i][j].type == HALL){
+                dungeon->tiles[i][j].hardness = 0;
+            }
+        }
+    }
 }
 /*
 void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
@@ -369,6 +378,8 @@ void populateDungeon(Dungeon* dungeon){
         if(dungeon->tiles[row][col].type == FLOOR) {
             if(playerSet == 0) {
                 dungeon->tiles[row][col].type = PLAYER;
+                dungeon->mc.x = col;
+                dungeon->mc.y = row; //SPOTHERE
                 //Find the room the player starts in
                 for(int r = 0; r < dungeon-> numRooms; r++){
                     if(rectangleContainsCord(&(dungeon->rooms[r]), col, row) == 1){
