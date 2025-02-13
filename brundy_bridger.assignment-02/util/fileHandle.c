@@ -5,26 +5,22 @@
 #include <arpa/inet.h>
 #include "fileHandle.h"
 
-static void postProcessDungeon(Dungeon* d)
-{
-    // 1. Initialize tiles based on hardness
+static void postProcessDungeon(Dungeon* d) {
+    //set all 0 to hall
     for (int row = 0; row < 21; row++) {
         for (int col = 0; col < 80; col++) {
             int h = d->tiles[row][col].hardness;
             if (h == 0) {
-                // By default, treat zero-hardness cells as corridor/hall
                 d->tiles[row][col].type = HALL;
             } else {
-                // Non-zero hardness is rock
                 d->tiles[row][col].type = ROCK;
             }
         }
     }
 
-    // 2. Overwrite with FLOOR for each room rectangle
+    //set all 0 in a room to floor
     for (int r = 0; r < d->numRooms; r++) {
         Rectangle *room = &d->rooms[r];
-        // Check every tile to see if it's inside this room:
         for (int row = 0; row < 21; row++) {
             for (int col = 0; col < 80; col++) {
                 if (rectangleContainsCord(room, col, row)) {
@@ -36,21 +32,20 @@ static void postProcessDungeon(Dungeon* d)
     }
 
 
-    // 4. Place up stairs
+    //Place stairs
     for (int i = 0; i < d->numUpStairs; i++) {
         int sx = d->upStairs[i].x;
         int sy = d->upStairs[i].y;
         d->tiles[sy][sx].type = STAIR_UP;
     }
 
-    // 5. Place down stairs
     for (int i = 0; i < d->numDownStairs; i++) {
         int sx = d->downStairs[i].x;
         int sy = d->downStairs[i].y;
         d->tiles[sy][sx].type = STAIR_DOWN;
     }
 
-        // 3. Place the player
+    //player
     int px = d->mc.x;
     int py = d->mc.y;
     d->tiles[py][px].type = PLAYER;
@@ -255,10 +250,8 @@ void readDungeon(Dungeon *dungeon, char *testDungeon) {
     char file_path[256];
 
     if (testDungeon != NULL) {
-        // Use the provided dungeon filename from the saved_dungeons folder.
         snprintf(file_path, sizeof(file_path), "saved_dungeons/%s", testDungeon);
     } else {
-        // Use the default dungeon file from $HOME/.rlg327/dungeon.
         const char *home_env = getenv("HOME");
         if (!home_env) {
             fprintf(stderr, "HOME environment variable not set.\n");
@@ -273,7 +266,7 @@ void readDungeon(Dungeon *dungeon, char *testDungeon) {
         exit(EXIT_FAILURE);
     }
 
-    /* --- Read Header --- */
+    //Header
     char marker[12];
     if (fread(marker, sizeof(char), 12, f) != 12) {
         fprintf(stderr, "Error reading dungeon file marker.\n");
@@ -319,9 +312,9 @@ void readDungeon(Dungeon *dungeon, char *testDungeon) {
     dungeon->mc.x = playerX;
     dungeon->mc.y = playerY;
 
-   // printf("PC coords read: x=%u, y=%u\n", (unsigned) playerX, (unsigned) playerY);
+    //printf("PC coords read: x=%u, y=%u\n", (unsigned) playerX, (unsigned) playerY);
 
-    /* --- Read Dungeon Map --- */
+    //hardnesses
     for (int i = 0; i < 21; i++) {
         for (int j = 0; j < 80; j++) {
             uint8_t hardness;
@@ -335,7 +328,7 @@ void readDungeon(Dungeon *dungeon, char *testDungeon) {
         }
     }
 
-    /* --- Read Room Data --- */
+    //rooms
     uint16_t netNumRooms;
     if (fread(&netNumRooms, sizeof(uint16_t), 1, f) != 1) {
         fprintf(stderr, "Error reading number of rooms.\n");
@@ -364,7 +357,7 @@ void readDungeon(Dungeon *dungeon, char *testDungeon) {
         dungeon->rooms[i].height = roomHeight;
     }
 
-    /* --- Read Staircase Data --- */
+    //stairs
     uint16_t netNumUpStairs;
     if (fread(&netNumUpStairs, sizeof(uint16_t), 1, f) != 1) {
         fprintf(stderr, "Error reading number of up staircases.\n");
@@ -408,6 +401,7 @@ void readDungeon(Dungeon *dungeon, char *testDungeon) {
     }
 
     fclose(f);
+    //set the tile type enums
     postProcessDungeon(dungeon);
 }
 
