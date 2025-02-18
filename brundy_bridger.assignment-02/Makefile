@@ -9,6 +9,7 @@ SRC = gameScreen.c \
       $(UTIL_DIR)/point.c \
       $(UTIL_DIR)/rectangle.c \
       $(UTIL_DIR)/fileHandle.c \
+	  $(UTIL_DIR)/heap.c \
       $(GAMEOBJECTS_DIR)/dungeon.c \
       $(GAMEOBJECTS_DIR)/tile.c
 

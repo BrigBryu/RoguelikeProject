@@ -1,13 +1,12 @@
 This dungeon generator creates a procedurally generated 80x21 dungeon conforming to the project specifications. It ensures:
-- A minimum of 6 rooms, with sizes at least 4x3.
+- A minimum of 6 rooms connected, with sizes at least 4x3.
 - Rooms are separated by at least one cell of non-room space.
-- Immutable rock borders surrounding the dungeon.
 - At least one up and one down staircase, ensuring all floors are connected.
-- A fully connected dungeon all rooms are accessable
-- Each room can contain at most one staircase unless additional stairs are required
-- The starting room always contains a staircase back up adjacent to the player
-- There is a cap on number of hallway tiles, number of hallway tiles in a row, number of hallway tiles in a single area becasue I think it makes the dungeon look better
+
+- File Save/Load:
+  - Saves dungeon state to `~/.rlg327/dungeon` in big-endian format.
+
 Key functions:
-- generateDungeon(), renderDungeon()
-- File names: dungeon.h, dungeon.c, rectangle.h, point.h
+- generateDungeon(), renderDungeon(), readDungeon() and loadDungeon
+- File names: dungeon.h, dungeon.c, rectangle.h, point.h, fileHandler.h. fileHandler.c
 

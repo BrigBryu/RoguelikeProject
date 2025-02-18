@@ -4,12 +4,13 @@
 #include "dungeon.h"
 #include "rectangle.h"
 #include "point.h"
-
+#include "heap.h"
 #define width 80
 #define height 21
 #define MAX_HALL_TILES_THRESHOLD 70
 #define SURRONDING_HALL_MAX 3
 #define MAX_HORIZONTAL_IN_A_ROW 10
+#define INT_MAX 9999
 
 void initDungeon(Dungeon*);
 int validateDungeon(Dungeon* dungeon);
@@ -70,7 +71,7 @@ int validateDungeon(Dungeon* dungeon) {
         }
     }
     
-    //printf("Hall tile count: %d\n", hallCount);
+    printf("Hall tile count: %d\n", hallCount);
     //renderDungeon(dungeon);
     if(hallCount <= MAX_HALL_TILES_THRESHOLD){
         return 1;
@@ -119,6 +120,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                     for (int x = curX + 1; x <= nextX; x++) {
                         if (dungeon->tiles[curY][x].type == ROCK)
                             dungeon->tiles[curY][x].type = HALL;
+                            dungeon->tiles[curY][x].hardness = 0;
                     }
                     curX = nextX;
                 } else {
@@ -128,6 +130,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                     for (int x = curX - 1; x >= nextX; x--) {
                         if (dungeon->tiles[curY][x].type == ROCK)
                             dungeon->tiles[curY][x].type = HALL;
+                            dungeon->tiles[curY][x].hardness = 0;
                     }
                     curX = nextX;
                 }
@@ -141,6 +144,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                     for (int y = curY + 1; y <= nextY; y++) {
                         if (dungeon->tiles[y][curX].type == ROCK)
                             dungeon->tiles[y][curX].type = HALL;
+                            dungeon->tiles[y][curX].hardness = 0;
                     }
                     curY = nextY;
                 } else {
@@ -150,6 +154,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                     for (int y = curY - 1; y >= nextY; y--) {
                         if (dungeon->tiles[y][curX].type == ROCK)
                             dungeon->tiles[y][curX].type = HALL;
+                            dungeon->tiles[y][curX].hardness = 0;
                     }
                     curY = nextY;
                 }
@@ -165,6 +170,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                 for (int x = curX + 1; x <= nextX; x++) {
                     if (dungeon->tiles[curY][x].type == ROCK)
                         dungeon->tiles[curY][x].type = HALL;
+                        dungeon->tiles[curY][x].hardness = 0;
                 }
                 curX = nextX;
             } else {
@@ -174,6 +180,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                 for (int x = curX - 1; x >= nextX; x--) {
                     if (dungeon->tiles[curY][x].type == ROCK)
                         dungeon->tiles[curY][x].type = HALL;
+                        dungeon->tiles[curY][x].hardness = 0;
                 }
                 curX = nextX;
             }
@@ -188,6 +195,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                 for (int y = curY + 1; y <= nextY; y++) {
                     if (dungeon->tiles[y][curX].type == ROCK)
                         dungeon->tiles[y][curX].type = HALL;
+                        dungeon->tiles[y][curX].hardness = 0;
                 }
                 curY = nextY;
             } else {
@@ -197,6 +205,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
                 for (int y = curY - 1; y >= nextY; y--) {
                     if (dungeon->tiles[y][curX].type == ROCK)
                         dungeon->tiles[y][curX].type = HALL;
+                        dungeon->tiles[y][curX].hardness = 0;
                 }
                 curY = nextY;
             }
@@ -212,48 +221,7 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
         }
     }
 }
-/*
-void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
-    int minX, minY, maxX, maxY;
-    if(p1->x < p2->x){
-        minX = p1->x;
-        maxX = p2->x;
-    } else {
-        minX = p2->x;
-        maxX = p1->x;
-    }
 
-    if(p1->y < p2->y){
-        minY = p1->y;
-        maxY = p2->y;
-    } else {
-        minY = p2->y;
-        maxY = p1->y;
-    }
-
-    if (rand() % 2 == 0) {
-        // Carve horizontal then vertical
-        for (int x = minX; x <= maxX; x++) {
-            if (dungeon->tiles[p1->y][x].type == ROCK)
-                dungeon->tiles[p1->y][x].type = HALL;
-        }
-        for (int y = minY; y <= maxY; y++) {
-            if (dungeon->tiles[y][p2->x].type == ROCK)
-                dungeon->tiles[y][p2->x].type = HALL;
-        }
-    } else {
-        // Carve vertical then horizontal
-        for (int y = minY; y <= maxY; y++) {
-            if (dungeon->tiles[y][p1->x].type == ROCK)
-                dungeon->tiles[y][p1->x].type = HALL;
-        }
-        for (int x = minX; x <= maxX; x++) {
-            if (dungeon->tiles[p2->y][x].type == ROCK)
-                dungeon->tiles[p2->y][x].type = HALL;
-        }
-    }
-}
-*/
 /*
  * Room requireemtns
  * - area is 21 row by 80 col
@@ -304,6 +272,7 @@ void setRooms(Dungeon* dungeon){
                 for (int y = row; y < row + heightRoom && y < height - 1; y++) {
                     for (int x = col; x < col + widthRoom && x < width - 1; x++) {
                         dungeon->tiles[y][x].type = FLOOR;
+                        dungeon->tiles[y][x].hardness = 0;
                     }
                 }
             }
@@ -431,6 +400,20 @@ void populateDungeon(Dungeon* dungeon){
     }
 }
 
+typedef struct dist_node {
+  int x;
+  int y;
+  int distance;
+} dist_node_t;
+
+
+int32_t compare_dist_nodes(const void *key, const void *with) {
+    const dist_node_t *a = (const dist_node_t *) key;
+    const dist_node_t *b = (const dist_node_t *) with;
+    return (a->distance - b->distance);
+}
+
+
 void renderDungeon(Dungeon* dungeon){
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
@@ -439,3 +422,88 @@ void renderDungeon(Dungeon* dungeon){
         printf("\n");
     }
 }
+
+void dungeon_dijkstra_non_tunnel(Dungeon* dungeon) {
+    int dist[height][width];
+    // 1. Initialize distances
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            dist[i][j] = INT_MAX; // or some large number
+        }
+    }
+
+    // 2. Get player position
+    int pcx = dungeon->mc.x;
+    int pcy = dungeon->mc.y;
+    dist[pcy][pcx] = 0;
+
+    // 3. Set up the heap
+    heap_t h;
+    heap_init(&h, compare_dist_nodes, NULL);
+
+    dist_node_t *start = malloc(sizeof(*start));
+    start->x = pcx;
+    start->y = pcy;
+    start->distance = 0;
+    heap_insert(&h, start);
+
+    // 4. Dijkstra
+    while (heap_peek_min(&h)) {
+        dist_node_t *min_node = heap_remove_min(&h);
+        int x = min_node->x;
+        int y = min_node->y;
+        int cur_dist = min_node->distance;
+        free(min_node);
+
+        // If we've popped a node that isn't better than dist[y][x], skip
+        if (cur_dist > dist[y][x]) continue;
+
+        // Explore neighbors
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int nx = x + dx;
+                int ny = y + dy;
+                // Check bounds, check if passable, etc.
+                if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+
+                // Non-tunneling => must be hardness == 0
+                if (dungeon->tiles[ny][nx].hardness == 0) {
+                    int alt = cur_dist + 1; // cost to step
+                    if (alt < dist[ny][nx]) {
+                        dist[ny][nx] = alt;
+                        dist_node_t *neighbor = malloc(sizeof(*neighbor));
+                        neighbor->x = nx;
+                        neighbor->y = ny;
+                        neighbor->distance = alt;
+                        heap_insert(&h, neighbor);
+                    }
+                }
+            }
+        }
+    }
+
+    // 5. The dist[][] array now has shortest distances from PC
+    // 6. Possibly print them
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if(dungeon->tiles[i][j].type == PLAYER) {
+                printf("@");
+            } else if (dist[i][j] == INT_MAX) {
+                printf(" ");
+            } else {
+                int d = dist[i][j];
+                if(d >= 10) {
+                    d %= 10;
+                }
+                printf("%d", d);
+            }
+        }
+        if(i % width == 0)
+            printf("\n");
+
+    }
+
+    heap_delete(&h);
+}
+

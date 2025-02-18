@@ -24,6 +24,9 @@ void setRooms(Dungeon* dungeon);
 void setHalls(Dungeon* dungeon);
 void populateDungeon(Dungeon* dungeon);
 
+void dungeon_dijkstra_non_tunnel(Dungeon* dungeon);
+void dungeon_dijkstra_tunnel(Dungeon* dungeon);
+
 void renderDungeon(Dungeon* dungeon);
 
 #endif

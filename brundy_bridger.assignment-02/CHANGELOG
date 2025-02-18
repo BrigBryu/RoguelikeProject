@@ -1,5 +1,6 @@
 Change Log
-
+Feb 12: Finished reading and made writing then tested on instructor set
+Feb 11: Started making reading
 Feb 1: Created helper geometry files with structs Point and Rectangle
 Feb 2: Implemented room generation, ensuring proper spacing and size constraints.  
 Feb 3: Added corridor generation going to a nearest-room connection. I also refactored the Dungeon struct to use a 2d arry of Tile structs

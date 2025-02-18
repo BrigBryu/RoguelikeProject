@@ -5,7 +5,7 @@
 #include "dungeon.h"
 #include "fileHandle.h"
 
-int main(int argc, char *argv[]) {
+int runLoadAndSave(int argc, char *argv[]) {
     srand(time(NULL));
     int save_flag = 0;
     int load_flag = 0;
@@ -70,6 +70,21 @@ int main(int argc, char *argv[]) {
     if (save_flag) {
         writeDungeon(&dungeon);
     }
+
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    Dungeon dungeon;
+    srand(time(NULL));
+    dungeon = generateDungeon();
+
+    renderDungeon(&dungeon);
+
+    dungeon_dijkstra_non_tunnel(&dungeon);
+
+
+    //dungeon_dijkstra_tunnel(&dungeon);
 
     return 0;
 }
