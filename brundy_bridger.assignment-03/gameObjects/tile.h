@@ -7,7 +7,6 @@ typedef enum{
     STAIR_UP,
     STAIR_DOWN,
     HALL,
-    PLAYER
 } TileType;
 
 typedef struct{

@@ -46,9 +46,7 @@ static void postProcessDungeon(Dungeon* d) {
     }
 
     //player
-    int px = d->mc.x;
-    int py = d->mc.y;
-    d->tiles[py][px].type = PLAYER;
+    //d->tiles[py][px].type = PLAYER;
 
 }
 

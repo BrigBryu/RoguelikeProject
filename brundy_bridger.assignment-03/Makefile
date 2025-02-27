@@ -15,9 +15,9 @@ SRC = gameScreen.c \
 
 # Other
 OBJ = $(SRC:.c=.o)
-TARGET = assignment02
+TARGET = assignment03
 
-# first rule
+# rule
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) -lm
 

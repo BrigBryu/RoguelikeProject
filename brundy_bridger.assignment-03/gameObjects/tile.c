@@ -14,8 +14,6 @@ Tile createTile(TileType type) {
             return (Tile){STAIR_DOWN, 0};
         case(HALL):
             return (Tile){HALL, 0};
-        case(PLAYER):
-            return (Tile){PLAYER,0};
     }
     return (Tile){ROCK, ((rand() % 135) + 120)};
 }
@@ -37,8 +35,6 @@ char getCharacter(Tile* t){
             return '>';
         case(HALL):
             return '#';
-        case(PLAYER):
-            return '@';
     }
     return '?';
 }

@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     dungeon_dijkstra_non_tunnel(&dungeon);
 
 
-    //dungeon_dijkstra_tunnel(&dungeon);
+    dungeon_dijkstra_tunnel(&dungeon);
 
     return 0;
 }
