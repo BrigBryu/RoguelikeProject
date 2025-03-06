@@ -10,14 +10,9 @@
 #include "point.h"
 #include "simulate.h"
 
-/* ---------------------------------------------------------------------------
-   Portable Dijkstra functions:
-   They now fill in the provided 2D arrays.
-   --------------------------------------------------------------------------- */
 void dungeon_dijkstra_non_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
 void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
 
-/* Global Dijkstra maps used by monster AI */
 static int dijkstra_non_tunnel[heightScreen][widthScreen];
 static int dijkstra_tunnel[heightScreen][widthScreen];
 
@@ -25,23 +20,17 @@ static int dijkstra_tunnel[heightScreen][widthScreen];
 #define PC_MOVE_DELAY (1000 / PC_SPEED)
 #define SLEEP_USECS 250000
 
-/* Comparison function for move events in the event queue */
 int compare_move_event(const void *a, const void *b) {
     const move_event_t *ea = a;
     const move_event_t *eb = b;
     return (ea->turn - eb->turn);
 }
 
-/* Return the delay (in turns) for an NPC’s next move */
 int getMoveDelayNPC(NPC *npc) {
     return 1000 / getSpeed(npc);
 }
 
-/* Move a character one step toward a target.
-   - Non-tunnelers cannot move into rock (hardness > 0).
-   - Tunnelers break through rock: they subtract 85 from hardness,
-     and if the hardness becomes 0 (or less), the cell is converted to a corridor.
-*/
+// Move a character one step
 void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
     int dx = 0, dy = 0;
     if (target.x > from->x)
@@ -78,10 +67,6 @@ void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
     from->y = newy;
 }
 
-/* Process a PC move.
-   If the destination cell is rock (hardness > 0 and not immutable),
-   the PC bores through it by converting the cell to a corridor.
-*/
 void processPCMove(Dungeon *dungeon) {
     int dx = (rand() % 3) - 1;
     int dy = (rand() % 3) - 1;
@@ -92,7 +77,6 @@ void processPCMove(Dungeon *dungeon) {
     if (dungeon->tiles[newy][newx].hardness == 255)
         return;
     if (dungeon->tiles[newy][newx].hardness > 0) {
-        /* Bore through the rock: immediately set hardness to 0 and convert to a hall */
         dungeon->tiles[newy][newx].hardness = 0;
         dungeon->tiles[newy][newx].type = HALL;
     }
@@ -100,23 +84,12 @@ void processPCMove(Dungeon *dungeon) {
     dungeon->mc.y = newy;
 }
 
-/* Process a monster move.
-   - Erratic monsters sometimes move randomly.
-   - Non-telepathic monsters only move if the PC is in the same room.
-   - Intelligent monsters (or telepathic ones) use the Dijkstra maps.
-   - Otherwise, a non-intelligent monster moves directly toward the PC.
-   
-   Whenever a monster (or erratic monster) moves into a cell with rock,
-   if it has tunneling ability it breaks the rock (reducing hardness, and if reduced to 0,
-   converting the cell into a corridor).
-*/
 void processMonsterMove(Dungeon *dungeon, NPC *npc) {
     int is_tele        = (npc->atributes & TELEPATHIC) ? 1 : 0;
     int is_intelligent = (npc->atributes & INTELIGENT) ? 1 : 0;
     int is_erratic     = (npc->atributes & ERATIC) ? 1 : 0;
     int canTunnel      = (npc->atributes & TUNNELING) ? 1 : 0;
 
-    /* Erratic behavior: 50% chance to move randomly */
     if (is_erratic && (rand() % 2 == 0)) {
         int dx = (rand() % 3) - 1;
         int dy = (rand() % 3) - 1;
@@ -127,13 +100,11 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
         if (dungeon->tiles[newy][newx].hardness == 255)
             return;
         if (!canTunnel) {
-            /* Non-tunneling erratic monsters only move into open floor */
             if (dungeon->tiles[newy][newx].hardness > 0)
                 return;
             npc->cord.x = newx;
             npc->cord.y = newy;
         } else {
-            /* Tunneling erratic monsters: if destination is rock, break it */
             if (dungeon->tiles[newy][newx].hardness > 0) {
                 int newHardness = dungeon->tiles[newy][newx].hardness - 85;
                 if (newHardness <= 0) {
@@ -151,7 +122,6 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
         return;
     }
 
-    /* Determine if the monster knows the PC's location */
     int pc_visible = 0;
     if (is_tele) {
         pc_visible = 1;
@@ -167,7 +137,6 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
     if (!pc_visible)
         return;
 
-    /* Intelligent monsters use the Dijkstra maps */
     if (is_intelligent) {
         int best = INT_MAX;
         int best_x = npc->cord.x;
@@ -192,7 +161,6 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
                 }
             }
         }
-        /* For tunneling monsters, break rock if necessary */
         if (canTunnel && dungeon->tiles[best_y][best_x].hardness > 0) {
             int newHardness = dungeon->tiles[best_y][best_x].hardness - 85;
             if (newHardness <= 0) {
@@ -209,34 +177,17 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
         return;
     }
 
-    /* Non-intelligent monsters simply move directly toward the PC */
     moveTowards(&(npc->cord), dungeon->mc, dungeon, canTunnel);
 }
 
-/* Check for collision between monsters and the PC (or between monsters).
-   Returns 1 if the PC is killed, 0 otherwise.
-*/
 int checkCollision(Dungeon *dungeon, NPC *npc) {
-    if (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y)
-        return 1;
-    for (int i = 0; i < dungeon->numMonsters; i++) {
-        if (dungeon->monsters[i] == npc)
-            continue;
-        if (dungeon->monsters[i] != NULL &&
-            dungeon->monsters[i]->cord.x == npc->cord.x &&
-            dungeon->monsters[i]->cord.y == npc->cord.y) {
-            dungeon->monsters[i]->texture = 'X';
-        }
-    }
-    return 0;
+    return (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y);
 }
 
-/* Main simulation loop (Discrete Event Simulator) */
 void simulateMonsters(Dungeon *dungeon, int num_monsters_default) {
     heap_t event_queue;
     heap_init(&event_queue, compare_move_event, NULL);
 
-    /* Create an initial event for the PC */
     move_event_t *pc_event = malloc(sizeof(*pc_event));
     pc_event->turn  = PC_MOVE_DELAY;
     pc_event->is_pc = 1;
@@ -245,7 +196,6 @@ void simulateMonsters(Dungeon *dungeon, int num_monsters_default) {
 
     renderDungeon(dungeon);
 
-    /* Create initial events for each monster */
     for (int i = 0; i < dungeon->numMonsters; i++) {
         move_event_t *m_event = malloc(sizeof(*m_event));
         m_event->turn  = getMoveDelayNPC(dungeon->monsters[i]);
@@ -262,17 +212,14 @@ void simulateMonsters(Dungeon *dungeon, int num_monsters_default) {
         game_turn = event->turn;
 
         if (event->is_pc) {
-            /* Process the PC move */
             processPCMove(dungeon);
 
-            /* Update the Dijkstra maps using the portable routines */
             dungeon_dijkstra_non_tunnel(dungeon, dijkstra_non_tunnel);
             dungeon_dijkstra_tunnel(dungeon, dijkstra_tunnel);
 
             renderDungeon(dungeon);
             usleep(SLEEP_USECS);
 
-            /* Check if the PC stepped onto a monster’s cell */
             for (int i = 0; i < dungeon->numMonsters; i++) {
                 if (dungeon->monsters[i] != NULL &&
                     dungeon->mc.x == dungeon->monsters[i]->cord.x &&
@@ -289,7 +236,6 @@ void simulateMonsters(Dungeon *dungeon, int num_monsters_default) {
                 free(event);
             }
         } else {
-            /* Process a monster move */
             processMonsterMove(dungeon, event->npc);
             if (checkCollision(dungeon, event->npc)) {
                 printf("PC killed by monster!\n");
@@ -297,19 +243,13 @@ void simulateMonsters(Dungeon *dungeon, int num_monsters_default) {
                 free(event);
                 break;
             }
-            if (event->npc->texture == 'X') {
-                free(event);
-            } else {
-                event->turn += getMoveDelayNPC(event->npc);
-                heap_insert(&event_queue, event);
-            }
+            event->turn += getMoveDelayNPC(event->npc);
+            heap_insert(&event_queue, event);
         }
 
-        /* Win condition: all monsters have been eliminated */
         int alive_monsters = 0;
         for (int i = 0; i < dungeon->numMonsters; i++) {
-            if (dungeon->monsters[i] != NULL &&
-                dungeon->monsters[i]->texture != 'X')
+            if (dungeon->monsters[i] != NULL)
                 alive_monsters++;
         }
         if (alive_monsters == 0) {

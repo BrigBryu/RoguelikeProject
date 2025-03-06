@@ -18,7 +18,7 @@ SRC = gameScreen.c \
 
 # Other
 OBJ = $(SRC:.c=.o)
-TARGET = assignment03
+TARGET = assignment04
 
 # rule
 $(TARGET): $(OBJ)

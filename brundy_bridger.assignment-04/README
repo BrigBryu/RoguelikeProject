@@ -1,0 +1,9 @@
+dungeon conforming to the project specifications:
+Simulating dungeon:
+ - Player character randomly moves
+ - Different monster (npcs) that move acording to their assigned traits
+
+Key functions:
+- processMonsterMove(), simulateMonsters(), dungeonDijkstraNonTunnel(), DungeonDijkstraTunnel(), generateDungeon(), renderDungeon(), readDungeon() and loadDungeon()
+- File names: dungeon.h, dungeon.c, rectangle.h, point.h, fileHandler.h. fileHandler.c, heap.h, heap.c, simulate.c, simulate.h
+
