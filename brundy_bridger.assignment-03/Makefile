@@ -11,7 +11,10 @@ SRC = gameScreen.c \
       $(UTIL_DIR)/fileHandle.c \
 	  $(UTIL_DIR)/heap.c \
       $(GAMEOBJECTS_DIR)/dungeon.c \
-      $(GAMEOBJECTS_DIR)/tile.c
+      $(GAMEOBJECTS_DIR)/tile.c \
+      $(GAMEOBJECTS_DIR)/simulate.c \
+      $(GAMEOBJECTS_DIR)/npc.c \
+	  
 
 # Other
 OBJ = $(SRC:.c=.o)

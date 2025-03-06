@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "simulate.h"
 #include "dungeon.h"
 #include "rectangle.h"
 #include "point.h"
 #include "heap.h"
-#define width 80
-#define height 21
 #define MAX_HALL_TILES_THRESHOLD 70
 #define SURRONDING_HALL_MAX 3
 #define MAX_HORIZONTAL_IN_A_ROW 10
@@ -29,10 +27,23 @@ Dungeon generateDungeon(){
     return dungeon;
 }
 
+void spawnMonsters(Dungeon *dungeon, int num_monsters) {
+    dungeon->numMonsters = 0;
+    for (int i = 0; i < dungeon->numRooms && dungeon->numMonsters < num_monsters; i++) {
+        int monsters_in_room = rand() % 4;
+        for (int j = 0; j < monsters_in_room && dungeon->numMonsters < num_monsters; j++) {
+            int x = dungeon->rooms[i].bottomLeft.x + (rand() % dungeon->rooms[i].width);
+            int y = dungeon->rooms[i].bottomLeft.y + (rand() % dungeon->rooms[i].height);
+            NPC *monster = makeNPC(createPoint(x, y));
+            dungeon->monsters[dungeon->numMonsters++] = monster;
+        }
+    }
+}
+
 int validateDungeon(Dungeon* dungeon) {
     int hallCount = 0;
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+    for (int i = 0; i < heightScreen; i++) {
+        for (int j = 0; j < widthScreen; j++) {
             if (dungeon->tiles[i][j].type == HALL) {
                 hallCount++;
                 int surroundingHallCount = 0;
@@ -45,7 +56,7 @@ int validateDungeon(Dungeon* dungeon) {
                         int nj = j + dj;
                         //check bounds 
                         
-                        if (ni >= 0 && ni < height && nj >= 0 && nj < width) {
+                        if (ni >= 0 && ni < heightScreen && nj >= 0 && nj < widthScreen) {
                             if (dungeon->tiles[ni][nj].type == HALL)
                                 surroundingHallCount++;
                         }
@@ -59,9 +70,9 @@ int validateDungeon(Dungeon* dungeon) {
     }
 
 
-    for (int i = 0; i < height; i++) {
+    for (int i = 0; i < heightScreen; i++) {
         int rowHallCount = 0;
-        for (int j = 0; j < width; j++) {
+        for (int j = 0; j < widthScreen; j++) {
             if (dungeon->tiles[i][j].type == HALL) {
                 rowHallCount++;
             }
@@ -71,7 +82,6 @@ int validateDungeon(Dungeon* dungeon) {
         }
     }
     
-    //renderDungeon(dungeon);
     if(hallCount <= MAX_HALL_TILES_THRESHOLD){
         return 1;
     } else {
@@ -89,10 +99,10 @@ void initDungeon(Dungeon* dungeon){
 }
 
 void setTiles(Dungeon* dungeon){
-    for(int i = 0; i < height; i++){
-        for(int j = 0; j < width; j++){
+    for(int i = 0; i < heightScreen; i++){
+        for(int j = 0; j < widthScreen; j++){
             dungeon->tiles[i][j] = createTile(ROCK);
-            if(i == 0 || i == height -1 || j == 0 || j == width - 1) {
+            if(i == 0 || i == heightScreen -1 || j == 0 || j == widthScreen - 1) {
                 dungeon->tiles[i][j].hardness = 255; //set edge immutable
             }
         }
@@ -212,8 +222,8 @@ void carveCorridor(Dungeon* dungeon, Point* p1, Point* p2) {
     }
 
     //Set hardness
-    for(int i = 0; i < height; i++){
-        for(int j = 0; j < width; j++){
+    for(int i = 0; i < heightScreen; i++){
+        for(int j = 0; j < widthScreen; j++){
             if(dungeon->tiles[i][j].type == HALL){
                 dungeon->tiles[i][j].hardness = 0;
             }
@@ -245,14 +255,14 @@ void setRooms(Dungeon* dungeon){
         }
 
         //cant be 0 row or col cant be 20 row or 80 col
-        int row = rand() % (height - 2) + 1;
-        int col = rand() % (width - 2) + 1;
+        int row = rand() % (heightScreen - 2) + 1;
+        int col = rand() % (widthScreen - 2) + 1;
         //try multiple times for each point that way there can be more small spaces
         int placed = 0;
         for(int i = 0; i < 2 && placed != 1; i++) {
             int heightRoom = rand() % 6 + 3;
             int widthRoom = rand() % 12 + 4;
-            if (row + heightRoom > height - 2 || col + widthRoom > width - 2) {
+            if (row + heightRoom > heightScreen - 2 || col + widthRoom > widthScreen - 2) {
                 continue;  // Skip this try location + dimensions make illegal
             }
             Rectangle room = createRectangle(col, row, widthRoom, heightRoom);
@@ -268,8 +278,8 @@ void setRooms(Dungeon* dungeon){
                 dungeon->rooms[dungeon->numRooms] = room;
                 dungeon->numRooms++;
                 numRoomsPlaced++;
-                for (int y = row; y < row + heightRoom && y < height - 1; y++) {
-                    for (int x = col; x < col + widthRoom && x < width - 1; x++) {
+                for (int y = row; y < row + heightRoom && y < heightScreen - 1; y++) {
+                    for (int x = col; x < col + widthRoom && x < widthScreen - 1; x++) {
                         dungeon->tiles[y][x].type = FLOOR;
                         dungeon->tiles[y][x].hardness = 0;
                     }
@@ -341,8 +351,8 @@ void populateDungeon(Dungeon* dungeon){
                 }
             }
         }
-        row = rand() % height;
-        col = rand() % width;
+        row = rand() % heightScreen;
+        col = rand() % widthScreen;
         if(dungeon->tiles[row][col].type == FLOOR) {
             if(playerSet == 0) {
                 //dungeon->tiles[row][col].type = PLAYER; dont do player tile do point
@@ -414,23 +424,31 @@ int32_t compare_dist_nodes(const void *key, const void *with) {
 
 
 void renderDungeon(Dungeon* dungeon){
-    for(int i = 0; i < height; i++){
-        for(int j = 0; j < width; j++){
-            if(dungeon->mc.x == j && dungeon->mc.y == i){
+    for(int i = 0; i < heightScreen; i++){
+        for(int j = 0; j < widthScreen; j++){
+                        int printed = 0;
+            if (dungeon->mc.x == j && dungeon->mc.y == i) {
                 printf("@");
-            } else {
-            renderTile(&(dungeon->tiles[i][j]),i,j);
+                printed = 1;
+            }
+            for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
+                if (dungeon->monsters[m]->cord.x == j && dungeon->monsters[m]->cord.y == i) {
+                    printf("%c", dungeon->monsters[m]->texture);
+                    printed = 1;
+                }
+            }
+            if (!printed) {
+                renderTile(&(dungeon->tiles[i][j]), i, j);
             }
         }
         printf("\n");
     }
 }
 
-void dungeon_dijkstra_non_tunnel(Dungeon* dungeon) {
-    int dist[height][width];
+void dungeon_dijkstra_non_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]){
     // set distances
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+    for (int i = 0; i < heightScreen; i++) {
+        for (int j = 0; j < widthScreen; j++) {
             dist[i][j] = INT_MAX; // or some large number
         }
     }
@@ -464,7 +482,7 @@ void dungeon_dijkstra_non_tunnel(Dungeon* dungeon) {
                 if (dx == 0 && dy == 0) continue;
                 int nx = x + dx;
                 int ny = y + dy;
-                if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+                if (ny < 0 || ny >= heightScreen || nx < 0 || nx >= widthScreen) continue;
 
                 // Non-tunneling must be hardness == 0
                 if (dungeon->tiles[ny][nx].hardness == 0) {
@@ -482,8 +500,9 @@ void dungeon_dijkstra_non_tunnel(Dungeon* dungeon) {
         }
     }
 
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+    /*
+    for (int i = 0; i < heightScreen; i++) {
+        for (int j = 0; j < widthScreen; j++) {
             if(dungeon->mc.x == j && dungeon->mc.y == i) {
                 //printf("@");
                 printf("\033[1;31m@\033[0m");
@@ -497,19 +516,18 @@ void dungeon_dijkstra_non_tunnel(Dungeon* dungeon) {
                 printf("%d", d);
             }
         }
-        if(i % width == 0)
+        if(i % widthScreen == 0)
             printf("\n");
 
     }
+    */
 
     heap_delete(&h);
 }
 
-void dungeon_dijkstra_tunnel(Dungeon* dungeon) {
-    int dist[height][width];
-    // set distances
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]){
+    for (int i = 0; i < heightScreen; i++) {
+        for (int j = 0; j < widthScreen; j++) {
             dist[i][j] = INT_MAX;
         }
     }
@@ -543,7 +561,7 @@ void dungeon_dijkstra_tunnel(Dungeon* dungeon) {
                 if (dx == 0 && dy == 0) continue;
                 int nx = x + dx;
                 int ny = y + dy;
-                if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+                if (ny < 0 || ny >= heightScreen || nx < 0 || nx >= widthScreen) continue;
 
                 // tunneling no must be hardness == 0
                 //if (dungeon->tiles[ny][nx].hardness == 0) {
@@ -564,8 +582,9 @@ void dungeon_dijkstra_tunnel(Dungeon* dungeon) {
         }
     }
 
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
+    /*
+    for (int i = 0; i < heightScreen; i++) {
+        for (int j = 0; j < widthScreen; j++) {
             if(dungeon->mc.x == j && dungeon->mc.y == i) {
                 //printf("@");
                 printf("\033[1;31m@\033[0m");
@@ -579,11 +598,12 @@ void dungeon_dijkstra_tunnel(Dungeon* dungeon) {
                 printf("%d", d);
             }
         }
-        if(i % width == 0)
+        if(i % widthScreen == 0)
             printf("\n");
 
     }
 
     heap_delete(&h);
+    */
 }
 
