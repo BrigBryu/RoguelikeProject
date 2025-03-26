@@ -9,6 +9,7 @@
 #define MAX_MONSTERS 100
 #define widthScreen 80
 #define heightScreen 21
+#define IMMUTABLE_HARDNESS 255
 
 
 typedef struct { //increased num of stuff for asingment 2 can change later
@@ -22,10 +23,11 @@ typedef struct { //increased num of stuff for asingment 2 can change later
     int numUpStairs;
     NPC* monsters[MAX_MONSTERS];
     int numMonsters;
+    int renderMapMode; // 0=default, 1=non-tunneling, 2=tunneling, 3=hardness
 } Dungeon;
 
 Dungeon generateDungeon();
-void intiDungeon(Dungeon* dungeon);
+void initDungeon(Dungeon* dungeon);
 void setTiles(Dungeon* dungeon);
 void setRooms(Dungeon* dungeon);
 void setHalls(Dungeon* dungeon);
@@ -34,5 +36,5 @@ void populateDungeon(Dungeon* dungeon);
 void dungeon_dijkstra_non_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
 void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
 void renderDungeon(Dungeon* dungeon);
-
+void freeDungeon(Dungeon* dungeon);
 #endif

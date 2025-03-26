@@ -10,7 +10,6 @@
 #define MAX_HORIZONTAL_IN_A_ROW 10
 #define INT_MAX 9999999
 
-void initDungeon(Dungeon*);
 int validateDungeon(Dungeon* dungeon);
 
 Dungeon generateDungeon(){
@@ -103,7 +102,7 @@ void setTiles(Dungeon* dungeon){
         for(int j = 0; j < widthScreen; j++){
             dungeon->tiles[i][j] = createTile(ROCK);
             if(i == 0 || i == heightScreen -1 || j == 0 || j == widthScreen - 1) {
-                dungeon->tiles[i][j].hardness = 255; //set edge immutable
+                dungeon->tiles[i][j].hardness = IMMUTABLE_HARDNESS; //set edge immutable
             }
         }
     }
@@ -565,7 +564,7 @@ void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScree
 
                 // tunneling no must be hardness == 0
                 //if (dungeon->tiles[ny][nx].hardness == 0) {
-                if(dungeon->tiles[ny][nx].hardness == 255){
+                if(dungeon->tiles[ny][nx].hardness == IMMUTABLE_HARDNESS){
                     continue; //TODO Not sure what todo
                 }
                 int alt = cur_dist + (dungeon->tiles[ny][nx].hardness/85) + 1; // cost to step
@@ -607,3 +606,13 @@ void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScree
     */
 }
 
+
+void freeDungeon(Dungeon* dungeon) {
+    for (int i = 0; i < dungeon->numMonsters; i++) {
+        if (dungeon->monsters[i] != NULL) {
+            free(dungeon->monsters[i]);
+            dungeon->monsters[i] = NULL;
+        }
+    }
+    dungeon->numMonsters = 0;
+}
