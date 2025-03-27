@@ -24,6 +24,7 @@ typedef struct { //increased num of stuff for asingment 2 can change later
     NPC* monsters[MAX_MONSTERS];
     int numMonsters;
     int renderMapMode; // 0=default, 1=non-tunneling, 2=tunneling, 3=hardness
+    int monsterNeedUpdate;
 } Dungeon;
 
 Dungeon generateDungeon();
@@ -37,4 +38,5 @@ void dungeon_dijkstra_non_tunnel(Dungeon *dungeon, int dist[heightScreen][widthS
 void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
 void renderDungeon(Dungeon* dungeon);
 void freeDungeon(Dungeon* dungeon);
+void spawnMonsters(Dungeon *dungeon, int num_monsters);
 #endif

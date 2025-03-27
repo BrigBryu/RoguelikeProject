@@ -22,7 +22,7 @@ typedef struct{
     char texture;
 } NPC;
 
-NPC *makeNPC();
+NPC *makeNPC(Point cord);
 unsigned int getSpeed(NPC const *npc);
 
 #endif

@@ -95,6 +95,7 @@ void initDungeon(Dungeon* dungeon){
     dungeon->mc = createPoint(0,0);
     dungeon->numDownStairs = 0;
     dungeon->numUpStairs = 0;
+    dungeon->monsterNeedUpdate = 0;
 }
 
 void setTiles(Dungeon* dungeon){

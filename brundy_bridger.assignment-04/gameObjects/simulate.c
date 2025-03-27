@@ -1,36 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <limits.h>
-#include <string.h>
 #include "dungeon.h"
 #include "npc.h"
-#include "heap.h"
 #include "rectangle.h"
 #include "point.h"
-#include "simulate.h"
-
-void dungeon_dijkstra_non_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
-void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScreen]);
 
 static int dijkstra_non_tunnel[heightScreen][widthScreen];
 static int dijkstra_tunnel[heightScreen][widthScreen];
 
-#define PC_SPEED 10
-#define PC_MOVE_DELAY (1000 / PC_SPEED)
-#define SLEEP_USECS 250000
-
-int compare_move_event(const void *a, const void *b) {
-    const move_event_t *ea = a;
-    const move_event_t *eb = b;
-    return (ea->turn - eb->turn);
-}
-
-int getMoveDelayNPC(NPC *npc) {
-    return 1000 / getSpeed(npc);
-}
-
-// Move a character one step
 void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
     int dx = 0, dy = 0;
     if (target.x > from->x)
@@ -65,23 +43,6 @@ void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
     }
     from->x = newx;
     from->y = newy;
-}
-
-void processPCMove(Dungeon *dungeon) {
-    int dx = (rand() % 3) - 1;
-    int dy = (rand() % 3) - 1;
-    int newx = dungeon->mc.x + dx;
-    int newy = dungeon->mc.y + dy;
-    if (newx < 0 || newx >= widthScreen || newy < 0 || newy >= heightScreen)
-        return;
-    if (dungeon->tiles[newy][newx].hardness == 255)
-        return;
-    if (dungeon->tiles[newy][newx].hardness > 0) {
-        dungeon->tiles[newy][newx].hardness = 0;
-        dungeon->tiles[newy][newx].type = HALL;
-    }
-    dungeon->mc.x = newx;
-    dungeon->mc.y = newy;
 }
 
 void processMonsterMove(Dungeon *dungeon, NPC *npc) {
@@ -180,82 +141,15 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
     moveTowards(&(npc->cord), dungeon->mc, dungeon, canTunnel);
 }
 
-int checkCollision(Dungeon *dungeon, NPC *npc) {
-    return (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y);
-}
+void simulateMonsters(Dungeon *dungeon) {
+    // Update the Dijkstra maps relative to the PC.
+    dungeon_dijkstra_non_tunnel(dungeon, dijkstra_non_tunnel);
+    dungeon_dijkstra_tunnel(dungeon, dijkstra_tunnel);
 
-void simulateMonsters(Dungeon *dungeon, int num_monsters_default) {
-    heap_t event_queue;
-    heap_init(&event_queue, compare_move_event, NULL);
-
-    move_event_t *pc_event = malloc(sizeof(*pc_event));
-    pc_event->turn  = PC_MOVE_DELAY;
-    pc_event->is_pc = 1;
-    pc_event->npc   = NULL;
-    heap_insert(&event_queue, pc_event);
-
-    renderDungeon(dungeon);
-
+    // Process each monster's move.
     for (int i = 0; i < dungeon->numMonsters; i++) {
-        move_event_t *m_event = malloc(sizeof(*m_event));
-        m_event->turn  = getMoveDelayNPC(dungeon->monsters[i]);
-        m_event->is_pc = 0;
-        m_event->npc   = dungeon->monsters[i];
-        heap_insert(&event_queue, m_event);
-    }
-
-    int game_over = 0;
-    int game_turn = 0;
-
-    while (!game_over) {
-        move_event_t *event = heap_remove_min(&event_queue);
-        game_turn = event->turn;
-
-        if (event->is_pc) {
-            processPCMove(dungeon);
-
-            dungeon_dijkstra_non_tunnel(dungeon, dijkstra_non_tunnel);
-            dungeon_dijkstra_tunnel(dungeon, dijkstra_tunnel);
-
-            renderDungeon(dungeon);
-            usleep(SLEEP_USECS);
-
-            for (int i = 0; i < dungeon->numMonsters; i++) {
-                if (dungeon->monsters[i] != NULL &&
-                    dungeon->mc.x == dungeon->monsters[i]->cord.x &&
-                    dungeon->mc.y == dungeon->monsters[i]->cord.y) {
-                    printf("PC killed by monster!\n");
-                    game_over = 1;
-                    break;
-                }
-            }
-            if (!game_over) {
-                event->turn += PC_MOVE_DELAY;
-                heap_insert(&event_queue, event);
-            } else {
-                free(event);
-            }
-        } else {
-            processMonsterMove(dungeon, event->npc);
-            if (checkCollision(dungeon, event->npc)) {
-                printf("PC killed by monster!\n");
-                game_over = 1;
-                free(event);
-                break;
-            }
-            event->turn += getMoveDelayNPC(event->npc);
-            heap_insert(&event_queue, event);
-        }
-
-        int alive_monsters = 0;
-        for (int i = 0; i < dungeon->numMonsters; i++) {
-            if (dungeon->monsters[i] != NULL)
-                alive_monsters++;
-        }
-        if (alive_monsters == 0) {
-            printf("PC wins! All monsters defeated.\n");
-            game_over = 1;
+        if (dungeon->monsters[i] != NULL) {
+            processMonsterMove(dungeon, dungeon->monsters[i]);
         }
     }
-    heap_delete(&event_queue);
 }
