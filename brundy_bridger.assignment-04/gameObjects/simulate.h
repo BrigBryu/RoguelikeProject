@@ -3,6 +3,6 @@
 
 #include "dungeon.h"
 
-void simulateMonsters(Dungeon *dungeon, int num_monsters);
+int simulateMonsters(Dungeon *dungeon);
 
 #endif

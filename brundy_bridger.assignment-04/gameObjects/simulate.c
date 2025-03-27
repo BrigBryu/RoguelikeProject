@@ -45,7 +45,7 @@ void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
     from->y = newy;
 }
 
-void processMonsterMove(Dungeon *dungeon, NPC *npc) {
+int processMonsterMove(Dungeon *dungeon, NPC *npc) {
     int is_tele        = (npc->atributes & TELEPATHIC) ? 1 : 0;
     int is_intelligent = (npc->atributes & INTELIGENT) ? 1 : 0;
     int is_erratic     = (npc->atributes & ERATIC) ? 1 : 0;
@@ -57,12 +57,12 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
         int newx = npc->cord.x + dx;
         int newy = npc->cord.y + dy;
         if (newx < 0 || newx >= widthScreen || newy < 0 || newy >= heightScreen)
-            return;
+            return 0;
         if (dungeon->tiles[newy][newx].hardness == 255)
-            return;
+            return 0;
         if (!canTunnel) {
             if (dungeon->tiles[newy][newx].hardness > 0)
-                return;
+                return 0;
             npc->cord.x = newx;
             npc->cord.y = newy;
         } else {
@@ -80,7 +80,7 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
                 npc->cord.y = newy;
             }
         }
-        return;
+        return 0;
     }
 
     int pc_visible = 0;
@@ -96,7 +96,7 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
         }
     }
     if (!pc_visible)
-        return;
+        return 0;
 
     if (is_intelligent) {
         int best = INT_MAX;
@@ -135,21 +135,27 @@ void processMonsterMove(Dungeon *dungeon, NPC *npc) {
             npc->cord.x = best_x;
             npc->cord.y = best_y;
         }
-        return;
+
+        if (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y) {
+            return 1;
+        }
+        return 0;
     }
 
     moveTowards(&(npc->cord), dungeon->mc, dungeon, canTunnel);
 }
 
-void simulateMonsters(Dungeon *dungeon) {
-    // Update the Dijkstra maps relative to the PC.
+int simulateMonsters(Dungeon *dungeon) {
     dungeon_dijkstra_non_tunnel(dungeon, dijkstra_non_tunnel);
     dungeon_dijkstra_tunnel(dungeon, dijkstra_tunnel);
 
     // Process each monster's move.
     for (int i = 0; i < dungeon->numMonsters; i++) {
         if (dungeon->monsters[i] != NULL) {
-            processMonsterMove(dungeon, dungeon->monsters[i]);
+            if (processMonsterMove(dungeon, dungeon->monsters[i])) {
+                return 1;
+            }
         }
     }
+    return 0;
 }

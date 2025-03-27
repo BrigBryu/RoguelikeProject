@@ -266,15 +266,22 @@ int main(int argc, char *argv[]) {
         renderStatus("status line 1", "status line 2");
         
         int ch;
+        int gameOver = 0;
         while ((ch = getch()) != 'Q') {
+            if (!gameOver) {
             updateDungeon(dungeon, ch, gameWin);
             /* If the player moved, update monster movement */
             if (dungeon->monsterNeedUpdate) {
-                simulateMonsters(dungeon, 10);
+                if (simulateMonsters(dungeon)) {
+                    renderMessageLine("You have been slain by a monster! Press Q to quit.");
+                    gameOver = 1;
+                }
                 dungeon->monsterNeedUpdate = 0;
+                }
+                renderCurses(dungeon, gameWin);
+            } else {
+                renderMessageLine("You have been slain by a monster! Press Q to quit.");
             }
-            renderCurses(dungeon, gameWin);
-            /* Optionally, update the message or status lines here. */
         }
         
         /* Clean up ncurses and dungeon resources */
