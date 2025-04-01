@@ -1,28 +1,28 @@
-CC = gcc
+CC = g++
 CFLAGS = -g -Wall -I$(GAMEOBJECTS_DIR) -I$(UTIL_DIR)
 
 # File directories
 UTIL_DIR = util
 GAMEOBJECTS_DIR = gameObjects
 
-SRC = gameScreen.c \
-      $(UTIL_DIR)/point.c \
-      $(UTIL_DIR)/rectangle.c \
-      $(UTIL_DIR)/fileHandle.c \
-      $(UTIL_DIR)/heap.c \
-      $(UTIL_DIR)/ui.c \
-      $(GAMEOBJECTS_DIR)/dungeon.c \
-      $(GAMEOBJECTS_DIR)/tile.c \
-      $(GAMEOBJECTS_DIR)/simulate.c \
-      $(GAMEOBJECTS_DIR)/npc.c
+SRC = gameScreen.cpp \
+      $(UTIL_DIR)/point.cpp \
+      $(UTIL_DIR)/rectangle.cpp \
+      $(UTIL_DIR)/fileHandle.cpp \
+      $(UTIL_DIR)/heap.cpp \
+      $(UTIL_DIR)/ui.cpp \
+      $(GAMEOBJECTS_DIR)/dungeon.cpp \
+      $(GAMEOBJECTS_DIR)/tile.cpp \
+      $(GAMEOBJECTS_DIR)/simulate.cpp \
+      $(GAMEOBJECTS_DIR)/npc.cpp
 
-OBJ = $(SRC:.c=.o)
+OBJ = $(SRC:.cpp=.o)
 TARGET = assignment05
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) -lncurses -lm
 
-%.o: %.c
+%.o: %.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

@@ -1,3 +1,11 @@
+TO RUN:
+make
+./assignment05
+
+Customization notes:
+some times there will be free floors (no monsters :D yay not a bug)
+if monsters dont update they may be stone try moving to new level
+
 dungeon conforming to the project specifications:
 Simulating dungeon and displays through ncurses:
  - Player character now controled moves
