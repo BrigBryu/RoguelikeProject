@@ -10,8 +10,8 @@
 #define heightScreen 21
 #define IMMUTABLE_HARDNESS 255
 
-
-typedef struct { //increased num of stuff for asingment 2 can change later
+class Dungeon {
+public:
     Rectangle rooms[50];
     int numRooms;
     Tile tiles[heightScreen][widthScreen];
@@ -27,7 +27,7 @@ typedef struct { //increased num of stuff for asingment 2 can change later
     int numMonsters;
     int renderMapMode; // 0=default, 1=non-tunneling, 2=tunneling, 3=hardness
     int monsterNeedUpdate;
-} Dungeon;
+};
 
 Dungeon generateDungeon();
 void initDungeon(Dungeon* dungeon);
