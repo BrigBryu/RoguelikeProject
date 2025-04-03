@@ -23,6 +23,7 @@ Dungeon generateDungeon(){
         populateDungeon(&dungeon);
         ranOnce = 1;
     }
+    dungeon.gotoMode = 0;
     return dungeon;
 }
 
@@ -101,6 +102,8 @@ void initDungeon(Dungeon* dungeon){
 void setTiles(Dungeon* dungeon){
     for(int i = 0; i < heightScreen; i++){
         for(int j = 0; j < widthScreen; j++){
+            dungeon->fogOfWar[i][j] = createTile(ROCK);
+            dungeon->fogOfWar[i][j].hardness = 1;
             dungeon->tiles[i][j] = createTile(ROCK);
             if(i == 0 || i == heightScreen -1 || j == 0 || j == widthScreen - 1) {
                 dungeon->tiles[i][j].hardness = IMMUTABLE_HARDNESS; //set edge immutable
@@ -602,9 +605,9 @@ void dungeon_dijkstra_tunnel(Dungeon *dungeon, int dist[heightScreen][widthScree
             printf("\n");
 
     }
+    */
 
     heap_delete(&h);
-    */
 }
 
 

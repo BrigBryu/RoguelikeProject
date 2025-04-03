@@ -10,6 +10,11 @@ static int dijkstra_non_tunnel[heightScreen][widthScreen];
 static int dijkstra_tunnel[heightScreen][widthScreen];
 
 void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
+    // Check if already at target
+    if (from->x == target.x && from->y == target.y) {
+        return;
+    }
+    
     int dx = 0, dy = 0;
     if (target.x > from->x)
         dx = 1;
@@ -143,19 +148,40 @@ int processMonsterMove(Dungeon *dungeon, NPC *npc) {
     }
 
     moveTowards(&(npc->cord), dungeon->mc, dungeon, canTunnel);
+    
+    // Check if monster reached the player after moving
+    if (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y) {
+        return 1;
+    }
+    
+    return 0;
 }
 
 int simulateMonsters(Dungeon *dungeon) {
     dungeon_dijkstra_non_tunnel(dungeon, dijkstra_non_tunnel);
     dungeon_dijkstra_tunnel(dungeon, dijkstra_tunnel);
 
+    int monsterMoved = 0;
+    int playerHit = 0;
+    
     // Process each monster's move.
     for (int i = 0; i < dungeon->numMonsters; i++) {
         if (dungeon->monsters[i] != NULL) {
+            // Store old position to see if monster moved
+            int oldX = dungeon->monsters[i]->cord.x;
+            int oldY = dungeon->monsters[i]->cord.y;
+            
+            // If monster hits player, return 1 immediately
             if (processMonsterMove(dungeon, dungeon->monsters[i])) {
-                return 1;
+                return 1;  // Monster reached player
+            }
+            
+            // Check if monster moved
+            if (oldX != dungeon->monsters[i]->cord.x || oldY != dungeon->monsters[i]->cord.y) {
+                monsterMoved = 1;
             }
         }
     }
-    return 0;
+    
+    return monsterMoved;  // Return 1 if any monster moved, 0 otherwise
 }

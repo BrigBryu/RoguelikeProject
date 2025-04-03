@@ -17,7 +17,7 @@ SRC = gameScreen.cpp \
       $(GAMEOBJECTS_DIR)/npc.cpp
 
 OBJ = $(SRC:.cpp=.o)
-TARGET = assignment05
+TARGET = assignment06
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) -lncurses -lm

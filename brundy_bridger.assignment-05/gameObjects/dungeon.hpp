@@ -14,8 +14,11 @@
 typedef struct { //increased num of stuff for asingment 2 can change later
     Rectangle rooms[50];
     int numRooms;
-    Tile tiles[21][80];
+    Tile tiles[heightScreen][widthScreen];
+    Tile fogOfWar[heightScreen][widthScreen];
     Point mc;
+    Point tp;
+    int gotoMode;
     Point downStairs[100];
     int numDownStairs;
     Point upStairs[100];

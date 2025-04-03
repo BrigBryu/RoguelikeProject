@@ -1,4 +1,6 @@
 Change Log
+Apr 2: added in goto and fixed monster movement that was broken
+Apr 1: Fully ported to c++ and made fogof war
 Mar 26: Add ncurses ui and player controled movement (including stairs)
 Mar 5: Full dungeon simulation everything moves!
 Mar 4: Added monster types and movement

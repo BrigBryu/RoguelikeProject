@@ -9,6 +9,13 @@ void initCurses(void) {
     noecho();               // Prevent echoing of typed characters.
     keypad(stdscr, TRUE);   // Enable special keys (e.g., arrow keys).
     curs_set(0);            // Hide the cursor.
+    
+    // Initialize colors if supported
+    if (has_colors()) {
+        start_color();
+        init_pair(1, COLOR_YELLOW, COLOR_BLACK);  // Orange/yellow for visible area
+    }
+    
     clear();                // Clear the screen.
     refresh();              // Refresh the screen.
 }
@@ -102,6 +109,87 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                     } else {
                         int h = 1 + (hardness * 8) / 254;
                         mvwaddch(gameWin, i, j, '0' + h);
+                    }
+                }
+            }
+            //Fog of war
+            else if(mode == 4){
+                if (dungeon->mc.x == j && dungeon->mc.y == i) {
+                    mvwaddch(gameWin, i, j, '@');
+                    printed = 1;
+                }
+                
+                for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
+                    if (dungeon->monsters[m]->cord.x == j &&
+                        dungeon->monsters[m]->cord.y == i) {
+                        // Only show monsters in visible area
+                        int dx = abs(j - dungeon->mc.x);
+                        int dy = abs(i - dungeon->mc.y);
+                        if(dx <= 2 && dy <= 2) {
+                            if (has_colors()) {
+                                wattron(gameWin, COLOR_PAIR(1));
+                            }
+                            mvwaddch(gameWin, i, j, dungeon->monsters[m]->texture);
+                            if (has_colors()) {
+                                wattroff(gameWin, COLOR_PAIR(1));
+                            }
+                            printed = 1;
+                        }
+                    }
+                }
+                
+                if (!printed) {
+                    int dx = abs(j - dungeon->mc.x);
+                    int dy = abs(i - dungeon->mc.y);
+                    if(dx <= 2 && dy <= 2) {
+                        // In visible area - show current terrain in orange
+                        if (has_colors()) {
+                            wattron(gameWin, COLOR_PAIR(1));
+                        }
+                        mvwaddch(gameWin, i, j, getCharacter(&dungeon->tiles[i][j]));
+                        if (has_colors()) {
+                            wattroff(gameWin, COLOR_PAIR(1));
+                        }
+                    } else {
+                        // Outside visible area - show remembered terrain
+                        if (dungeon->fogOfWar[i][j].type == ROCK) {
+                            mvwaddch(gameWin, i, j, ' ');
+                        } else {
+                            mvwaddch(gameWin, i, j, getCharacter(&dungeon->fogOfWar[i][j]));
+                        }
+                    }
+                }
+            } else if (mode == 5) {
+                if (dungeon->tp.x == j && dungeon->tp.y == i) {
+                    mvwaddch(gameWin, i, j, '*');
+                    printed = 1;
+                }
+                
+                for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
+                    if (dungeon->monsters[m]->cord.x == j &&
+                        dungeon->monsters[m]->cord.y == i) {
+                        // Only show monsters in visible area
+                        int dx = abs(j - dungeon->mc.x);
+                        int dy = abs(i - dungeon->mc.y);
+                        if(dx <= 2 && dy <= 2) {
+                            if (has_colors()) {
+                                wattron(gameWin, COLOR_PAIR(1));
+                            }
+                            mvwaddch(gameWin, i, j, dungeon->monsters[m]->texture);
+                            if (has_colors()) {
+                                wattroff(gameWin, COLOR_PAIR(1));
+                            }
+                            printed = 1;
+                        }
+                    }
+                }
+                
+                if (!printed) {
+                    // show remembered terrain
+                    if (dungeon->fogOfWar[i][j].type == ROCK) {
+                        mvwaddch(gameWin, i, j, ' ');
+                    } else {
+                        mvwaddch(gameWin, i, j, getCharacter(&dungeon->fogOfWar[i][j]));
                     }
                 }
             }

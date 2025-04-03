@@ -1,17 +1,17 @@
 TO RUN:
 make
-./assignment05
+./assignment06
 
 Customization notes:
 some times there will be free floors (no monsters :D yay not a bug)
 if monsters dont update they may be stone try moving to new level
 
 dungeon conforming to the project specifications:
-Simulating dungeon and displays through ncurses:
- - Player character now controled moves
+Runs dungeon and displays through ncurses:
+ - Input: player movement, goto and fogofwar
  - Different monster (npcs) that move acording to their assigned traits
 
 Key functions:
-- updateDungeon(), processMonsterMove(), simulateMonsters(), dungeonDijkstraNonTunnel(), DungeonDijkstraTunnel(), generateDungeon(), renderDungeon(), readDungeon() and loadDungeon()
-- File names: dungeon.h, dungeon.c, rectangle.h, point.h, fileHandler.h. fileHandler.c, heap.h, heap.c, simulate.c, simulate.h
+- updateDungeon(), gotoMode(), simulateMonsters(), dungeonDijkstraNonTunnel(), DungeonDijkstraTunnel(), generateDungeon(), renderDungeon(), readDungeon() and loadDungeon()
+- File names: dungeon.hpp, dungeon.cpp, rectangle.hpp, point.hpp, fileHandler.hpp. fileHandler.cpp, heap.hpp, heap.cpp, simulate.cpp, simulate.hpp
 
