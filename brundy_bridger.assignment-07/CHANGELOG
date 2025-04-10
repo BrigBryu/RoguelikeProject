@@ -1,0 +1,17 @@
+Change Log
+Apr 9: added monsterParser and monsterParser output
+Apr 8: refactored npc to be Monster class
+Apr 2: added in goto and fixed monster movement that was broken
+Apr 1: Fully ported to c++ and made fogof war
+Mar 26: Add ncurses ui and player controled movement (including stairs)
+Mar 5: Full dungeon simulation everything moves!
+Mar 4: Added monster types and movement
+Feb 26: Added in hardness dixtra as well as printing the player red hope it hepls :)
+Feb 25: Made basic dixtra
+Feb 12: Finished reading and made writing then tested on instructor set
+Feb 11: Started making reading
+Feb 1: Created helper geometry files with structs Point and Rectangle
+Feb 2: Implemented room generation, ensuring proper spacing and size constraints.  
+Feb 3: Added corridor generation going to a nearest-room connection. I also refactored the Dungeon struct to use a 2d arry of Tile structs
+Feb 4: Added dungeon population logic, placing stairs with room-based constraints  
+Feb 5: Ensured the player starts next to an up staircase also addedd curvy pathing  

@@ -1,0 +1,16 @@
+TO RUN:
+make
+./assignment06
+
+Customization notes:
+some times there will be free floors (no monsters :D yay not a bug)
+if monsters dont update they may be stone try moving to new level
+
+dungeon conforming to the project specifications:
+Takes input of monster definitions then outputs monster definitions
+
+Key functions:
+You onlu need monsterParser.h/cpp, npc.h/cpp and dice.hpp
+- updateDungeon(), gotoMode(), simulateMonsters(), dungeonDijkstraNonTunnel(), DungeonDijkstraTunnel(), generateDungeon(), renderDungeon(), readDungeon() and loadDungeon()
+- File names: dungeon.hpp, dungeon.cpp, rectangle.hpp, point.hpp, fileHandler.hpp. fileHandler.cpp, heap.hpp, heap.cpp, simulate.cpp, simulate.hpp
+
