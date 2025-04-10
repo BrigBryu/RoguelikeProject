@@ -63,8 +63,8 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 }
                 
                 for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
-                    if (dungeon->monsters[m]->cord.x == j &&
-                        dungeon->monsters[m]->cord.y == i) {
+                    if (dungeon->monsters[m]->cord->x == j &&
+                        dungeon->monsters[m]->cord->y == i) {
                         mvwaddch(gameWin, i, j, dungeon->monsters[m]->texture);
                         printed = 1;
                     }
@@ -120,8 +120,8 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 }
                 
                 for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
-                    if (dungeon->monsters[m]->cord.x == j &&
-                        dungeon->monsters[m]->cord.y == i) {
+                    if (dungeon->monsters[m]->cord->x == j &&
+                        dungeon->monsters[m]->cord->y == i) {
                         // Only show monsters in visible area
                         int dx = abs(j - dungeon->mc.x);
                         int dy = abs(i - dungeon->mc.y);
@@ -166,8 +166,8 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 }
                 
                 for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
-                    if (dungeon->monsters[m]->cord.x == j &&
-                        dungeon->monsters[m]->cord.y == i) {
+                    if (dungeon->monsters[m]->cord->x == j &&
+                        dungeon->monsters[m]->cord->y == i) {
                         // Only show monsters in visible area
                         int dx = abs(j - dungeon->mc.x);
                         int dy = abs(i - dungeon->mc.y);

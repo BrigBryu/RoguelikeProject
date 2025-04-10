@@ -6,6 +6,7 @@
 #include "ui.hpp"
 #include "fileHandle.hpp"
 #include "simulate.hpp"
+#include "monsterParser.hpp"
 #include <time.h>
 
 int runLoadAndSave(int argc, char *argv[]);
@@ -309,8 +310,8 @@ void updateDungeon(Dungeon* dungeon, int key, WINDOW* gameWin) {
                 dungeon->monsterNeedUpdate = 1;
 
                 for (int i = 0; i < dungeon->numMonsters; i++) {
-                    if (dungeon->monsters[i]->cord.x == newX && 
-                        dungeon->monsters[i]->cord.y == newY) {
+                    if (dungeon->monsters[i]->cord->x == newX && 
+                        dungeon->monsters[i]->cord->y == newY) {
                         renderMessageLine("You attack the monster!");
                         break;
                     }
@@ -376,8 +377,8 @@ void displayMonsterList(Dungeon* dungeon, WINDOW* gameWin) {
         
         // Display each monster
         for (i = 0; i < dungeon->numMonsters; i++) {
-            int relX = dungeon->monsters[i]->cord.x - dungeon->mc.x;
-            int relY = dungeon->monsters[i]->cord.y - dungeon->mc.y;
+            int relX = dungeon->monsters[i]->cord->x - dungeon->mc.x;
+            int relY = dungeon->monsters[i]->cord->y - dungeon->mc.y;
             
             if (relY < 0) {
                 if (relX < 0) {

@@ -1,4 +1,6 @@
 Change Log
+Apr 9: added monsterParser and monsterParser output
+Apr 8: refactored npc to be Monster class
 Apr 2: added in goto and fixed monster movement that was broken
 Apr 1: Fully ported to c++ and made fogof war
 Mar 26: Add ncurses ui and player controled movement (including stairs)

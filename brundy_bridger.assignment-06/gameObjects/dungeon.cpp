@@ -34,7 +34,8 @@ void spawnMonsters(Dungeon *dungeon, int num_monsters) {
         for (int j = 0; j < monsters_in_room && dungeon->numMonsters < num_monsters; j++) {
             int x = dungeon->rooms[i].bottomLeft.x + (rand() % dungeon->rooms[i].width);
             int y = dungeon->rooms[i].bottomLeft.y + (rand() % dungeon->rooms[i].height);
-            NPC *monster = makeNPC(createPoint(x, y));
+            Point point = createPoint(x, y);
+            Monster *monster = new Monster(&point);
             dungeon->monsters[dungeon->numMonsters++] = monster;
         }
     }
@@ -435,7 +436,7 @@ void renderDungeon(Dungeon* dungeon){
                 printed = 1;
             }
             for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
-                if (dungeon->monsters[m]->cord.x == j && dungeon->monsters[m]->cord.y == i) {
+                if (dungeon->monsters[m]->cord->x == j && dungeon->monsters[m]->cord->y == i) {
                     printf("%c", dungeon->monsters[m]->texture);
                     printed = 1;
                 }

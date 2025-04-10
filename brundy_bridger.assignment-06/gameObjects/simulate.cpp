@@ -50,17 +50,17 @@ void moveTowards(Point *from, Point target, Dungeon *dungeon, int canTunnel) {
     from->y = newy;
 }
 
-int processMonsterMove(Dungeon *dungeon, NPC *npc) {
-    int is_tele        = (npc->atributes & TELEPATHIC) ? 1 : 0;
-    int is_intelligent = (npc->atributes & INTELIGENT) ? 1 : 0;
-    int is_erratic     = (npc->atributes & ERATIC) ? 1 : 0;
-    int canTunnel      = (npc->atributes & TUNNELING) ? 1 : 0;
+int processMonsterMove(Dungeon *dungeon, Monster *npc) {
+    int is_tele        = (npc->attributes & TELEPATHIC) ? 1 : 0;
+    int is_intelligent = (npc->attributes & INTELIGENT) ? 1 : 0;
+    int is_erratic     = (npc->attributes & ERATIC) ? 1 : 0;
+    int canTunnel      = (npc->attributes & TUNNELING) ? 1 : 0;
 
     if (is_erratic && (rand() % 2 == 0)) {
         int dx = (rand() % 3) - 1;
         int dy = (rand() % 3) - 1;
-        int newx = npc->cord.x + dx;
-        int newy = npc->cord.y + dy;
+        int newx = npc->cord->x + dx;
+        int newy = npc->cord->y + dy;
         if (newx < 0 || newx >= widthScreen || newy < 0 || newy >= heightScreen)
             return 0;
         if (dungeon->tiles[newy][newx].hardness == 255)
@@ -68,21 +68,21 @@ int processMonsterMove(Dungeon *dungeon, NPC *npc) {
         if (!canTunnel) {
             if (dungeon->tiles[newy][newx].hardness > 0)
                 return 0;
-            npc->cord.x = newx;
-            npc->cord.y = newy;
+            npc->cord->x = newx;
+            npc->cord->y = newy;
         } else {
             if (dungeon->tiles[newy][newx].hardness > 0) {
                 int newHardness = dungeon->tiles[newy][newx].hardness - 85;
                 if (newHardness <= 0) {
                     newHardness = 0;
                     dungeon->tiles[newy][newx].type = HALL;
-                    npc->cord.x = newx;
-                    npc->cord.y = newy;
+                    npc->cord->x = newx;
+                    npc->cord->y = newy;
                 }
                 dungeon->tiles[newy][newx].hardness = newHardness;
             } else {
-                npc->cord.x = newx;
-                npc->cord.y = newy;
+                npc->cord->x = newx;
+                npc->cord->y = newy;
             }
         }
         return 0;
@@ -93,7 +93,7 @@ int processMonsterMove(Dungeon *dungeon, NPC *npc) {
         pc_visible = 1;
     } else {
         for (int i = 0; i < dungeon->numRooms; i++) {
-            if (rectangleContainsCord(&(dungeon->rooms[i]), npc->cord.x, npc->cord.y) &&
+            if (rectangleContainsCord(&(dungeon->rooms[i]), npc->cord->x, npc->cord->y) &&
                 rectangleContainsCord(&(dungeon->rooms[i]), dungeon->mc.x, dungeon->mc.y)) {
                 pc_visible = 1;
                 break;
@@ -105,14 +105,14 @@ int processMonsterMove(Dungeon *dungeon, NPC *npc) {
 
     if (is_intelligent) {
         int best = INT_MAX;
-        int best_x = npc->cord.x;
-        int best_y = npc->cord.y;
+        int best_x = npc->cord->x;
+        int best_y = npc->cord->y;
         for (int dy = -1; dy <= 1; dy++) {
             for (int dx = -1; dx <= 1; dx++) {
                 if (dx == 0 && dy == 0)
                     continue;
-                int nx = npc->cord.x + dx;
-                int ny = npc->cord.y + dy;
+                int nx = npc->cord->x + dx;
+                int ny = npc->cord->y + dy;
                 if (nx < 0 || nx >= widthScreen || ny < 0 || ny >= heightScreen)
                     continue;
                 if (dungeon->tiles[ny][nx].hardness == 255)
@@ -132,25 +132,25 @@ int processMonsterMove(Dungeon *dungeon, NPC *npc) {
             if (newHardness <= 0) {
                 newHardness = 0;
                 dungeon->tiles[best_y][best_x].type = HALL;
-                npc->cord.x = best_x;
-                npc->cord.y = best_y;
+                npc->cord->x = best_x;
+                npc->cord->y = best_y;
             }
             dungeon->tiles[best_y][best_x].hardness = newHardness;
         } else {
-            npc->cord.x = best_x;
-            npc->cord.y = best_y;
+            npc->cord->x = best_x;
+            npc->cord->y = best_y;
         }
 
-        if (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y) {
+        if (npc->cord->x == dungeon->mc.x && npc->cord->y == dungeon->mc.y) {
             return 1;
         }
         return 0;
     }
 
-    moveTowards(&(npc->cord), dungeon->mc, dungeon, canTunnel);
+    moveTowards(npc->cord, dungeon->mc, dungeon, canTunnel);
     
     // Check if monster reached the player after moving
-    if (npc->cord.x == dungeon->mc.x && npc->cord.y == dungeon->mc.y) {
+    if (npc->cord->x == dungeon->mc.x && npc->cord->y == dungeon->mc.y) {
         return 1;
     }
     
@@ -168,8 +168,8 @@ int simulateMonsters(Dungeon *dungeon) {
     for (int i = 0; i < dungeon->numMonsters; i++) {
         if (dungeon->monsters[i] != NULL) {
             // Store old position to see if monster moved
-            int oldX = dungeon->monsters[i]->cord.x;
-            int oldY = dungeon->monsters[i]->cord.y;
+            int oldX = dungeon->monsters[i]->cord->x;
+            int oldY = dungeon->monsters[i]->cord->y;
             
             // If monster hits player, return 1 immediately
             if (processMonsterMove(dungeon, dungeon->monsters[i])) {
@@ -177,7 +177,7 @@ int simulateMonsters(Dungeon *dungeon) {
             }
             
             // Check if monster moved
-            if (oldX != dungeon->monsters[i]->cord.x || oldY != dungeon->monsters[i]->cord.y) {
+            if (oldX != dungeon->monsters[i]->cord->x || oldY != dungeon->monsters[i]->cord->y) {
                 monsterMoved = 1;
             }
         }

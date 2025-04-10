@@ -23,7 +23,7 @@ public:
     int numDownStairs;
     Point upStairs[100];
     int numUpStairs;
-    NPC* monsters[MAX_MONSTERS];
+    Monster* monsters[MAX_MONSTERS];
     int numMonsters;
     int renderMapMode; // 0=default, 1=non-tunneling, 2=tunneling, 3=hardness
     int monsterNeedUpdate;
