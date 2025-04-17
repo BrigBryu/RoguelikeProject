@@ -5,7 +5,7 @@ CFLAGS = -g -Wall -I$(GAMEOBJECTS_DIR) -I$(UTIL_DIR)
 UTIL_DIR = util
 GAMEOBJECTS_DIR = gameObjects
 
-SRC = monsterMain.cpp \
+SRC = gameScreen.cpp \
       $(UTIL_DIR)/point.cpp \
       $(UTIL_DIR)/rectangle.cpp \
       $(UTIL_DIR)/fileHandle.cpp \

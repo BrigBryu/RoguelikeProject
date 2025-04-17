@@ -1,6 +1,5 @@
-// monsterParser.cpp
-
 #include "monsterParser.hpp"
+#include <../gameObjects/dungeon.hpp>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -8,9 +7,8 @@
 #include <string>
 #include <vector>
 #include <cctype>
+#include <ctime>
 
-// Assume that point.hpp is included transitively via npc.hpp.
-// Helper function: trim whitespace from both ends of a string.
 std::string trim(const std::string &s) {
     size_t start = 0;
     while (start < s.size() && std::isspace(s[start])) {
@@ -62,10 +60,12 @@ MonsterList::MonsterList(const std::string &filename) {
         std::exit(EXIT_FAILURE);
     }
     
+    int monsterCount = 0;
     // Process file lines looking for monster definitions.
     while (std::getline(file, line)) {
         line = trim(line);
         if (line == "BEGIN MONSTER") {
+            monsterCount++;
             bool valid = true;
             // Flags for required fields.
             bool foundName = false, foundDesc = false, foundSymb = false, foundColor = false,
@@ -170,7 +170,7 @@ MonsterList::MonsterList(const std::string &filename) {
                     }
                     foundRRTY = true;
                 }
-                // Unknown keywords are simply ignored.
+                // Unknown keywords ignored.
             } // end of monster block
             
             // Must have all required fields.
@@ -180,28 +180,33 @@ MonsterList::MonsterList(const std::string &filename) {
             
             // If the monster definition is valid, construct the Monster.
             if (valid) {
-                // For HP we roll the dice immediately to compute the hitpoints value.
                 int hpValue = mHP.roll();
+                
+                // Properly allocate a new Point
                 Point* pt = new Point();
                 pt->x = 0;
                 pt->y = 0;
-                // Note: We pass 0 for the attributes; the Monster constructor may set them randomly.
+                
+                // Create the monster with all required attributes
                 Monster monster(pt, 0, mSymb, mName, mDesc, mAbil, mColor, mSpeed, hpValue, mDAM, mRarity);
+                
+                // Add it to our list of monsters
                 monsters.push_back(monster);
             }
             // If not valid, discard and continue to the next monster block.
         }
     }
+    
+    // Initialize uniquesUsed vector for tracking unique monsters
+    uniquesUsed.resize(monsters.size(), false);
 }
 
 // Destructor for MonsterList.
 // (For this assignment, cleaning up dynamically allocated Point pointers is optional.)
 MonsterList::~MonsterList() {
-    // Optionally, if Monster's destructor does not free the memory for Point* cord,
-    // you could iterate over monsters and delete the point, but for now we assume it's not needed.
+
 }
 
-// printList() prints each monster's fields in the required order.
 // Format: NAME, DESC, SYMB, COLOR, SPEED, ABIL, HP, DAM, RRTY (with a blank line between monsters).
 void MonsterList::printList() const {
     for (size_t i = 0; i < monsters.size(); ++i) {
@@ -225,4 +230,95 @@ void MonsterList::printList() const {
     }
 }
 
-// End of monsterParser.cpp
+// Generate a single monster from descriptions and place it in a random valid position
+Monster* MonsterList::generateMonster(Dungeon* dungeon) {
+    if (monsters.empty()) {
+        return nullptr;
+    }
+    
+    // Attempt to create a monster up to 100 times (to handle rarity checks)
+    for (int attempt = 0; attempt < 100; attempt++) {
+        // Step 1: uniformly select a random description from your vectors of descriptions
+        size_t index = rand() % monsters.size();
+        const Monster& desc = monsters[index];
+        
+        // Step 2: if the monster is ineligible for generation, go to 1
+        if (desc.name.find("UNIQUE") != std::string::npos && uniquesUsed[index]) {
+            continue; // Skip this unique monster, it's already been used
+        }
+        
+        // Step 3: choose a random integer between 0 and 99, inclusive. 
+        // If this number is LESS THAN the selected monster's rarity, go to 1
+        // If rarity is higher, it's LESS likely to spawn (counterintuitive from the name)
+        int rarityCheck = rand() % 100;
+        if (rarityCheck < desc.rarity) {
+            continue; // Failed rarity check, try another monster
+        }
+        
+        // Step 4: Generate the object or monster and place it in the dungeon
+        // Find a random valid position for the monster
+        if (dungeon->numRooms <= 0) {
+            return nullptr;
+        }
+        
+        int roomIndex = rand() % dungeon->numRooms;
+        Rectangle room = dungeon->rooms[roomIndex];
+        int x = room.bottomLeft.x + (rand() % room.width);
+        int y = room.bottomLeft.y + (rand() % room.height);
+        
+        // Create a new Point for the monster's location
+        Point* position = new Point();
+        position->x = x;
+        position->y = y;
+        
+        // Create the monster instance
+        // Per the project requirements:
+        // "Of these [dice], only damage should remain dice in an object instance.
+        // All others get rolled to become integers."
+        int hitpoints = desc.hitpoints;
+        
+        // Create a new monster using the description as a template
+        Monster* monster = new Monster(
+            position,
+            desc.attributes,
+            desc.texture,
+            desc.name,
+            desc.description,
+            desc.abilityNames,
+            desc.color,
+            desc.speed,
+            hitpoints,
+            desc.damage,  // damage remains as dice
+            desc.rarity
+        );
+        
+        // Mark unique monster as used
+        if (desc.name.find("UNIQUE") != std::string::npos) {
+            uniquesUsed[index] = true;
+        }
+        
+        return monster;
+    }
+    
+    // If we couldn't create a monster after 100 attempts, return nullptr
+    return nullptr;
+}
+
+// Spawn multiple monsters in the dungeon
+void MonsterList::spawnMonstersInDungeon(Dungeon* dungeon, int numMonsters) {
+    // First, clear any existing monsters
+    for (int i = 0; i < dungeon->numMonsters; i++) {
+        delete dungeon->monsters[i]->cord; // Delete the Point
+        delete dungeon->monsters[i];       // Delete the Monster
+    }
+    dungeon->numMonsters = 0;
+    
+    // Now add new monsters - try more times than needed to ensure we place enough monsters
+    // This accounts for rarity and uniqueness failures
+    for (int attempt = 0; attempt < numMonsters * 5 && dungeon->numMonsters < numMonsters; attempt++) {
+        Monster* monster = generateMonster(dungeon);
+        if (monster != nullptr) {
+            dungeon->monsters[dungeon->numMonsters++] = monster;
+        }
+    }
+}

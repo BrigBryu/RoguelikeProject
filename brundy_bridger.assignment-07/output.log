@@ -1,0 +1,93 @@
+Loading monster descriptions from: /Users/bridgerbrundy/.rlg327/monster_desc.txt
+Loading monster descriptions from: /Users/bridgerbrundy/.rlg327/monster_desc.txt
+File header: RLG327 MONSTER DESCRIPTION 1
+Created monster: Junior Barbarian (p) at position (0,0)
+Created monster: Amazon Lich Queen (p) at position (0,0)
+Created monster: Durin's Bane (B) at position (0,0)
+Created monster: Titan (M) at position (0,0)
+Created monster: Slime (s) at position (0,0)
+Created monster: Software Bug (z) at position (0,0)
+Created monster: Hardware Bug (z) at position (0,0)
+Created monster: C Program (C) at position (0,0)
+Created monster: C++ Program (C) at position (0,0)
+Created monster: Rory Gilmore (p) at position (0,0)
+Created monster: Tsukino Usagi (p) at position (0,0)
+Created monster: Casper the Friendly Ghost (G) at position (0,0)
+Created monster: Slimer (G) at position (0,0)
+Created monster: David Bowie (p) at position (0,0)
+Created monster: SpongeBob SquarePants (S) at position (0,0)
+Created monster: Grass Mud Horse (h) at position (0,0)
+Created monster: River Crab (c) at position (0,0)
+Created monster: Overhead Projector (P) at position (0,0)
+Created monster: Donald Trump (D) at position (0,0)
+Created monster: Bruce Willis (W) at position (0,0)
+Successfully loaded 20 monsters out of 20 definitions.
+Monster list initialization complete
+Spawning monsters...
+Passed rarity check for SpongeBob SquarePants: 79 >= 10
+Placing monster in room 7 at position (69,11)
+Created monster: SpongeBob SquarePants (S) at position (69,11)
+Failed rarity check for Donald Trump: 10 < 20
+Failed rarity check for C++ Program: 58 < 70
+Failed rarity check for Slimer: 21 < 80
+Failed rarity check for Tsukino Usagi: 37 < 40
+Failed rarity check for Overhead Projector: 39 < 100
+Passed rarity check for Titan: 56 >= 20
+Placing monster in room 7 at position (68,10)
+Created monster: Titan (M) at position (68,10)
+Passed rarity check for Hardware Bug: 60 >= 2
+Placing monster in room 1 at position (20,13)
+Created monster: Hardware Bug (z) at position (20,13)
+Passed rarity check for Hardware Bug: 92 >= 2
+Placing monster in room 7 at position (76,8)
+Created monster: Hardware Bug (z) at position (76,8)
+Failed rarity check for C++ Program: 53 < 70
+Passed rarity check for Durin's Bane: 46 >= 10
+Placing monster in room 2 at position (53,7)
+Created monster: Durin's Bane (B) at position (53,7)
+Failed rarity check for Bruce Willis: 13 < 50
+Failed rarity check for Rory Gilmore: 34 < 40
+Failed rarity check for Software Bug: 53 < 100
+Failed rarity check for Overhead Projector: 50 < 100
+Passed rarity check for Durin's Bane: 84 >= 10
+Placing monster in room 0 at position (12,15)
+Created monster: Durin's Bane (B) at position (12,15)
+Failed rarity check for Junior Barbarian: 49 < 100
+Passed rarity check for C Program: 93 >= 80
+Placing monster in room 0 at position (12,16)
+Created monster: C Program (C) at position (12,16)
+Failed rarity check for Software Bug: 10 < 100
+Failed rarity check for Slimer: 15 < 80
+Failed rarity check for C++ Program: 49 < 70
+Failed rarity check for Rory Gilmore: 9 < 40
+Passed rarity check for Bruce Willis: 99 >= 50
+Placing monster in room 4 at position (40,6)
+Created monster: Bruce Willis (W) at position (40,6)
+Failed rarity check for C++ Program: 68 < 70
+Failed rarity check for David Bowie: 18 < 30
+Failed rarity check for Rory Gilmore: 9 < 40
+Failed rarity check for Overhead Projector: 98 < 100
+Failed rarity check for Rory Gilmore: 17 < 40
+Passed rarity check for Grass Mud Horse: 54 >= 25
+Placing monster in room 7 at position (75,8)
+Created monster: Grass Mud Horse (h) at position (75,8)
+Passed rarity check for Tsukino Usagi: 44 >= 40
+Placing monster in room 2 at position (51,4)
+Created monster: Tsukino Usagi (p) at position (51,4)
+Monster spawning complete. 10 monsters created.
+[?1049h[1;24r(B[m[4l[?7h[?1h=[?25l[39;49m[39;49m[37m[40m[H[2JWelcome to the dungeon!
+[5;40H....[5;52H....[6;15H............[6;40H....[6;52H[34m[40mp(B[m[39;49m[37m[40m...[7;15H............[7;40H....[7;52H....
+ .........    ............[8;40H.[32m[40mW(B[m[39;49m[37m[40m..[8;52H....
+ ......>..    ............[9;40H....########..[37m[40mB(B[m[39;49m[37m[40m.#########
+ .........[10;20H#[10;40H....[10;52H....[10;64H####.....<..[33m[40mh[34m[40mz
+[C(B[m[39;49m[37m[40m.........[11;20H#[11;52H....[11;68H......@...
+[6G###[16G.........[12;52H....[12;68H.[37m[40mM(B[m[39;49m[37m[40m........
+[8G#[16G........<[13;52H#[13;68H..[33m[40mS(B[m[39;49m[37m[40m.......
+[8G#[16G.........###################...........<...[14;68H..........
+[8G#[16G.....[34m[40mz(B[m[39;49m[37m[40m...[15;44H...............
+  ...........   #[16;44H...............
+  ..........[37m[40mB(B[m[39;49m[37m[40m   #
+  ..........[32m[40mC(B[m[39;49m[37m[40m####
+  ...........[22;80H
+status line 1
+status line 2[39;49m[K[24;1H[?12l[?25h[?1049l[?1l>

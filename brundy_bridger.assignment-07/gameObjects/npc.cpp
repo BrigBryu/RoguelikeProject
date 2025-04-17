@@ -1,5 +1,21 @@
 #include "npc.hpp"
 #include <stdlib.h>
+#include <iostream>
+
+Monster::Monster() {
+    this->cord = nullptr;
+    this->attributes = 0;
+    this->texture = 'M';
+    this->name = "Default Monster";
+    this->description = "A default monster";
+    this->color = "RED";
+    this->speed = Dice(1, 1, 10);
+    this->hitpoints = 10;
+    this->damage = Dice(1, 2, 3);
+    this->rarity = 1;
+    this->abilityNames = std::vector<std::string>();
+    this->abilityNames.push_back("default ability");
+}
 
 Monster::Monster(Point *cord){
     this->cord = cord;
@@ -49,4 +65,6 @@ void Monster::print() const{
     std::cout << "Monster: " << this->name << std::endl;
     std::cout << "Description: " << this->description << std::endl;
     std::cout << "Color: " << this->color << std::endl;
+    std::cout << "Symbol: " << this->texture << std::endl;
+    std::cout << "Position: (" << this->cord->x << "," << this->cord->y << ")" << std::endl;
 }

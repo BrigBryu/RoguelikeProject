@@ -1,13 +1,18 @@
+#include <ncurses.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ncurses.h>
-#include "dungeon.hpp"
-#include "ui.hpp"
-#include "fileHandle.hpp"
-#include "simulate.hpp"
-#include "monsterParser.hpp"
-#include <time.h>
+#include <unistd.h>
+#include <stdint.h>
+#include "gameObjects/dungeon.hpp"
+#include "gameObjects/simulate.hpp"
+#include "util/point.hpp"
+#include "util/ui.hpp"
+#include "util/monsterParser.hpp"
+#include <ctime>
+#include <cstdlib>
+#include <cstring>
 
 int runLoadAndSave(int argc, char *argv[]);
 int runTestMode(void);
@@ -15,6 +20,9 @@ int runSimulation(void);
 void updateFogOfWar(Dungeon* dungeon);
 
 void displayMonsterList(Dungeon* dungeon, WINDOW* gameWin);
+
+// Global MonsterList to store monster descriptions
+MonsterList* globalMonsterList = nullptr;
 
 void gotoMode(Dungeon* dungeon, int key, WINDOW* gameWin){
     int newX = dungeon->tp.x;
@@ -449,78 +457,96 @@ int runLoadAndSave(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc == 1) {
-        Dungeon* dungeon = (Dungeon*) malloc(sizeof(Dungeon));
-        if (dungeon == NULL) {
-            fprintf(stderr, "Failed to allocate memory for dungeon\n");
-            return EXIT_FAILURE;
-        }
+    // Set up random seed
+    srand(time(NULL));
+    
+    try {
+        // Initialize the monster list from the standard file location
+        std::string home = getenv("HOME") ? getenv("HOME") : ".";
+        std::string monsterFile = home + "/.rlg327/monster_desc.txt";
+        globalMonsterList = new MonsterList(monsterFile);
         
-        initDungeon(dungeon);
-        srand(time(NULL));
-        dungeon->renderMapMode = 0;
-        dungeon->monsterNeedUpdate = 0;
-        setTiles(dungeon);
-        setRooms(dungeon);
-        setHalls(dungeon);
-        populateDungeon(dungeon);
-        
-        spawnMonsters(dungeon, 10);
-        
-        // Initialize fog of war with the player's starting view
-        updateFogOfWar(dungeon);
-        
-        initCurses();
-        renderMessageLine("Welcome to the dungeon!");
-        WINDOW* gameWin = initGameMapWindow();
-        renderCurses(dungeon, gameWin);
-        renderStatus("status line 1", "status line 2");
-        
-        int ch;
-        while ((ch = getch()) != 'Q') {
-            updateDungeon(dungeon, ch, gameWin);
+        if (argc == 1) {
+            Dungeon* dungeon = (Dungeon*) malloc(sizeof(Dungeon));
+            if (dungeon == NULL) {
+                fprintf(stderr, "Failed to allocate memory for dungeon\n");
+                return EXIT_FAILURE;
+            }
             
-            // Always render the game after updating the dungeon state
+            initDungeon(dungeon);
+            dungeon->renderMapMode = 0;
+            dungeon->monsterNeedUpdate = 0;
+            setTiles(dungeon);
+            setRooms(dungeon);
+            setHalls(dungeon);
+            populateDungeon(dungeon);
+            
+            // Use the monster list to spawn monsters
+            spawnMonsters(dungeon, 10);
+            
+            // Initialize fog of war with the player's starting view
+            updateFogOfWar(dungeon);
+            
+            initCurses();
+            renderMessageLine("Welcome to the dungeon!");
+            WINDOW* gameWin = initGameMapWindow();
             renderCurses(dungeon, gameWin);
+            renderStatus("status line 1", "status line 2");
             
-            // Handle monster movement if needed
-            if (dungeon->monsterNeedUpdate) {
-                renderStatus("Monsters moving...", "");
-                if (simulateMonsters(dungeon)) {
-                    renderStatus("Monsters moved!", "");
-                } else {
-                    renderStatus("No monsters moved", "");
-                }
-                dungeon->monsterNeedUpdate = 0;
+            int ch;
+            while ((ch = getch()) != 'Q') {
+                updateDungeon(dungeon, ch, gameWin);
+                
+                // Always render the game after updating the dungeon state
                 renderCurses(dungeon, gameWin);
+                
+                // Handle monster movement if needed
+                if (dungeon->monsterNeedUpdate) {
+                    renderStatus("Monsters moving...", "");
+                    if (simulateMonsters(dungeon)) {
+                        renderStatus("Monsters moved!", "");
+                    } else {
+                        renderStatus("No monsters moved", "");
+                    }
+                    dungeon->monsterNeedUpdate = 0;
+                    renderCurses(dungeon, gameWin);
+                }
             }
-        }
-        
-        endCurses();
-        freeDungeon(dungeon);
-        free(dungeon);
-    } else {
-        int save_flag = 0, load_flag = 0, test_mode = 0;
-        for (int i = 1; i < argc; i++) {
-            if (strcmp(argv[i], "--save") == 0) {
-                save_flag = 1;
-            } else if (strcmp(argv[i], "--load") == 0) {
-                load_flag = 1;
-            } else if (strcmp(argv[i], "--test") == 0) {
-                test_mode = 1;
-            } else {
-                fprintf(stderr, "Usage: %s [--save] [--load] [--test]\n", argv[0]);
-                exit(EXIT_FAILURE);
-            }
-        }
-        
-        if (save_flag || load_flag) {
-            return runLoadAndSave(argc, argv);
-        } else if (test_mode) {
-            return runTestMode();
+            
+            endCurses();
+            freeDungeon(dungeon);
+            free(dungeon);
         } else {
-            return runSimulation();
+            int save_flag = 0, load_flag = 0, test_mode = 0;
+            for (int i = 1; i < argc; i++) {
+                if (strcmp(argv[i], "--save") == 0) {
+                    save_flag = 1;
+                } else if (strcmp(argv[i], "--load") == 0) {
+                    load_flag = 1;
+                } else if (strcmp(argv[i], "--test") == 0) {
+                    test_mode = 1;
+                } else {
+                    fprintf(stderr, "Usage: %s [--save] [--load] [--test]\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            
+            if (save_flag || load_flag) {
+                return runLoadAndSave(argc, argv);
+            } else if (test_mode) {
+                return runTestMode();
+            } else {
+                return runSimulation();
+            }
         }
+        
+        // Clean up the monster list
+        delete globalMonsterList;
+        
+    } catch (std::exception& e) {
+        fprintf(stderr, "Error: %s\n", e.what());
+        return EXIT_FAILURE;
     }
+    
     return 0;
 }

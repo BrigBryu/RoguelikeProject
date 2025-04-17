@@ -13,6 +13,17 @@ void initCurses(void) {
     // Initialize colors if supported
     if (has_colors()) {
         start_color();
+        
+        // Initialize color pairs for all colors
+        init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
+        init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
+        init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(COLOR_BLUE, COLOR_BLUE, COLOR_BLACK);
+        init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(COLOR_CYAN, COLOR_CYAN, COLOR_BLACK);
+        init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
+        
+        // Legacy pair for compatibility
         init_pair(1, COLOR_YELLOW, COLOR_BLACK);  // Orange/yellow for visible area
     }
     
@@ -35,6 +46,18 @@ WINDOW* initGameMapWindow(void) {
     }
     wrefresh(gameWin);
     return gameWin;
+}
+
+// Helper function to determine what color to use for a monster
+int getMonsterColor(const std::string& colorName) {
+    if (colorName == "RED") return COLOR_RED;
+    else if (colorName == "GREEN") return COLOR_GREEN;
+    else if (colorName == "YELLOW") return COLOR_YELLOW;
+    else if (colorName == "BLUE") return COLOR_BLUE;
+    else if (colorName == "MAGENTA") return COLOR_MAGENTA;
+    else if (colorName == "CYAN") return COLOR_CYAN;
+    else if (colorName == "BLACK") return COLOR_WHITE; // Use white for black (invisible otherwise)
+    else return COLOR_WHITE; // Default
 }
 
 void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
@@ -65,7 +88,15 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
                     if (dungeon->monsters[m]->cord->x == j &&
                         dungeon->monsters[m]->cord->y == i) {
+                        // Apply color to monster
+                        int colorValue = getMonsterColor(dungeon->monsters[m]->color);
+                        if (has_colors()) {
+                            wattron(gameWin, COLOR_PAIR(colorValue));
+                        }
                         mvwaddch(gameWin, i, j, dungeon->monsters[m]->texture);
+                        if (has_colors()) {
+                            wattroff(gameWin, COLOR_PAIR(colorValue));
+                        }
                         printed = 1;
                     }
                 }
@@ -126,12 +157,14 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                         int dx = abs(j - dungeon->mc.x);
                         int dy = abs(i - dungeon->mc.y);
                         if(dx <= 2 && dy <= 2) {
+                            // Apply color to monster
+                            int colorValue = getMonsterColor(dungeon->monsters[m]->color);
                             if (has_colors()) {
-                                wattron(gameWin, COLOR_PAIR(1));
+                                wattron(gameWin, COLOR_PAIR(colorValue));
                             }
                             mvwaddch(gameWin, i, j, dungeon->monsters[m]->texture);
                             if (has_colors()) {
-                                wattroff(gameWin, COLOR_PAIR(1));
+                                wattroff(gameWin, COLOR_PAIR(colorValue));
                             }
                             printed = 1;
                         }

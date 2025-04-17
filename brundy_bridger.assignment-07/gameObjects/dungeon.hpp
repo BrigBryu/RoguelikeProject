@@ -4,6 +4,7 @@
 #include "rectangle.hpp"
 #include "tile.hpp"
 #include "npc.hpp"
+#include "../util/monsterParser.hpp"
 
 #define MAX_MONSTERS 100
 #define widthScreen 80

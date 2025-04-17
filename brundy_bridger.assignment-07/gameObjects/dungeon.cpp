@@ -1,10 +1,17 @@
+#include "dungeon.hpp"
 #include <stdio.h>
 #include <stdlib.h>
-#include "simulate.hpp"
-#include "dungeon.hpp"
+#include <time.h>
+#include <limits.h>
 #include "rectangle.hpp"
 #include "point.hpp"
+#include "tile.hpp"
+#include "npc.hpp"
+#include "../util/globalVariables.hpp"
 #include "heap.hpp"
+#include <queue>
+#include <algorithm>
+
 #define MAX_HALL_TILES_THRESHOLD 70
 #define SURRONDING_HALL_MAX 3
 #define MAX_HORIZONTAL_IN_A_ROW 10
@@ -28,15 +35,29 @@ Dungeon generateDungeon(){
 }
 
 void spawnMonsters(Dungeon *dungeon, int num_monsters) {
+    // Clear any existing monsters first
+    for (int i = 0; i < dungeon->numMonsters; i++) {
+        delete dungeon->monsters[i]->cord; // Delete the Point
+        delete dungeon->monsters[i];       // Delete the Monster
+    }
     dungeon->numMonsters = 0;
-    for (int i = 0; i < dungeon->numRooms && dungeon->numMonsters < num_monsters; i++) {
-        int monsters_in_room = rand() % 4;
-        for (int j = 0; j < monsters_in_room && dungeon->numMonsters < num_monsters; j++) {
-            int x = dungeon->rooms[i].bottomLeft.x + (rand() % dungeon->rooms[i].width);
-            int y = dungeon->rooms[i].bottomLeft.y + (rand() % dungeon->rooms[i].height);
-            Point point = createPoint(x, y);
-            Monster *monster = new Monster(&point);
-            dungeon->monsters[dungeon->numMonsters++] = monster;
+    
+    // Use globalMonsterList if available
+    if (globalMonsterList != nullptr) {
+        globalMonsterList->spawnMonstersInDungeon(dungeon, num_monsters);
+    } else {
+        // Fallback to basic monster generation
+        for (int i = 0; i < dungeon->numRooms && dungeon->numMonsters < num_monsters; i++) {
+            int monsters_in_room = rand() % 4;
+            for (int j = 0; j < monsters_in_room && dungeon->numMonsters < num_monsters; j++) {
+                int x = dungeon->rooms[i].bottomLeft.x + (rand() % dungeon->rooms[i].width);
+                int y = dungeon->rooms[i].bottomLeft.y + (rand() % dungeon->rooms[i].height);
+                Point* position = new Point();
+                position->x = x;
+                position->y = y;
+                Monster *monster = new Monster(position);
+                dungeon->monsters[dungeon->numMonsters++] = monster;
+            }
         }
     }
 }
