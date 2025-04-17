@@ -1,0 +1,14 @@
+TO RUN:
+make
+./assignment06
+
+Customization notes:
+some times there will be free floors (no monsters :D yay not a bug)
+if monsters dont update they may be stone try moving to new level
+
+dungeon conforming to the project specifications:
+There are now both objects and monsters that move again! 
+Key functions:
+- updateDungeon(), gotoMode(), simulateMonsters(), dungeonDijkstraNonTunnel(), DungeonDijkstraTunnel(), generateDungeon(), renderDungeon(), readDungeon() and loadDungeon()
+- File names: object.c/hpp, dungeon.hpp, dungeon.cpp, rectangle.hpp, point.hpp, fileHandler.hpp. fileHandler.cpp, heap.hpp, heap.cpp, simulate.cpp, simulate.hpp
+
