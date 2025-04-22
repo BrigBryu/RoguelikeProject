@@ -20,7 +20,7 @@ SRC = gameScreen.cpp \
       $(GAMEOBJECTS_DIR)/object.cpp
 
 OBJ = $(SRC:.cpp=.o)
-TARGET = assignment07
+TARGET = assignment08
 
 # Add debug target
 .PHONY: debug
