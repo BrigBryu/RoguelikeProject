@@ -1,19 +1,38 @@
-#include <ncurses.h>
-#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <ncurses.h>
+#include <iostream>
+#include <algorithm>
+#include <string>
+#include "gameObjects/dungeon.hpp"
+#include "gameObjects/tile.hpp"
+#include "gameObjects/object.hpp"
+#include "util/globalVariables.hpp"
+#include "util/monsterParser.hpp"
+#include "util/ui.hpp"
+#include <locale.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "gameObjects/dungeon.hpp"
 #include "gameObjects/simulate.hpp"
 #include "util/point.hpp"
-#include "util/ui.hpp"
-#include "util/monsterParser.hpp"
-#include <ctime>
 #include <cstdlib>
 #include <cstring>
-#include "gameObjects/object.hpp"
+#include <fstream>
+
+/*
+*/
+
+class object_description;
+struct dungeon; 
+typedef struct dungeon dungeon_t;
+
+extern "C" {
+    uint32_t parse_descriptions(dungeon_t *d);
+    uint32_t print_descriptions(dungeon_t *d);
+    uint32_t destroy_descriptions(dungeon_t *d);
+}
 
 int runLoadAndSave(int argc, char *argv[]);
 int runTestMode(void);
@@ -21,6 +40,17 @@ int runSimulation(void);
 void updateFogOfWar(Dungeon* dungeon);
 void displayObjectList(Dungeon* dungeon, WINDOW* gameWin);
 void displayMonsterList(Dungeon* dungeon, WINDOW* gameWin);
+void displayInventory(Dungeon* dungeon, WINDOW* gameWin);
+void displayEquipment(Dungeon* dungeon, WINDOW* gameWin);
+void wearItem(Dungeon* dungeon, WINDOW* gameWin);
+void takeOffItem(Dungeon* dungeon, WINDOW* gameWin);
+void dropItem(Dungeon* dungeon, WINDOW* gameWin);
+void expungeItem(Dungeon* dungeon, WINDOW* gameWin);
+void inspectItem(Dungeon* dungeon, WINDOW* gameWin);
+void inspectEquippedItem(Dungeon* dungeon, WINDOW* gameWin);
+void lookAtMonster(Dungeon* dungeon, WINDOW* gameWin);
+char getPromptInput(const char* prompt);
+int getItemSelectionInput(Dungeon* dungeon, WINDOW* gameWin, bool isInventory);
 
 MonsterList* globalMonsterList = nullptr;
 ObjectList* globalObjectList = nullptr;
@@ -89,27 +119,26 @@ void gotoMode(Dungeon* dungeon, int key, WINDOW* gameWin){
             dungeon->monsterNeedUpdate = 1;
             updateFogOfWar(dungeon);
             break;
-    
         case 'g':
-            renderMessageLine("Teleporting to targeted location.");
+            renderMessageLine("Going to selected location.");
             dungeon->renderMapMode = 4;
             dungeon->gotoMode = 0;
-            if(dungeon->tiles[dungeon->tp.y][dungeon->tp.x].hardness == 255){
+            if(dungeon->tiles[dungeon->tp.y][dungeon->tp.x].hardness == 255) {
                 renderMessageLine("You can't teleport into immutable rock.");
-            } else{
+            } else {
                 dungeon->mc.x = dungeon->tp.x;
                 dungeon->mc.y = dungeon->tp.y;
                 dungeon->monsterNeedUpdate = 1;
                 updateFogOfWar(dungeon);
             }
-            
             break;
         case 'Q':
             renderMessageLine("Quitting game...");
+            dungeon->renderMapMode = 0;
+            dungeon->gotoMode = 0;
             break;
-            
         default:
-            renderMessageLine("Unrecognized command for goto mode.");
+            renderMessageLine("Use movement keys to move cursor, 'g' to go to location, 'r' for random location, or 'Q' to quit.");
             break;
     }
     
@@ -222,11 +251,16 @@ void updateDungeon(Dungeon* dungeon, int key, WINDOW* gameWin) {
                     renderMessageLine("You ascend the staircase to a new level.");
                     
                     int currentMode = dungeon->renderMapMode;
+                    // Save the player character's stats
+                    PC savedPlayer = dungeon->player;
                     
                     freeDungeon(dungeon);
                     
                     initDungeon(dungeon);
                     dungeon->renderMapMode = currentMode;
+                    // Restore the player's stats
+                    dungeon->player = savedPlayer;
+                    
                     setTiles(dungeon);
                     setRooms(dungeon);
                     setHalls(dungeon);
@@ -248,10 +282,10 @@ void updateDungeon(Dungeon* dungeon, int key, WINDOW* gameWin) {
             renderMessageLine("Character information would be displayed here.");
             break;
         case 'e':
-            renderMessageLine("Equipment would be displayed here.");
+            displayEquipment(dungeon, gameWin);
             break;
         case 'i':
-            renderMessageLine("Inventory would be displayed here.");
+            displayInventory(dungeon, gameWin);
             break;
         case 'm':
             displayMonsterList(dungeon, gameWin);
@@ -281,22 +315,22 @@ void updateDungeon(Dungeon* dungeon, int key, WINDOW* gameWin) {
             break;
             
         case 'd':
-            renderMessageLine("Drop item command would be processed here.");
+            dropItem(dungeon, gameWin);
             break;
         case 'w':
-            renderMessageLine("Wear item command would be processed here.");
+            wearItem(dungeon, gameWin);
             break;
         case 't':
-            renderMessageLine("Take off item command would be processed here.");
+            takeOffItem(dungeon, gameWin);
             break;
         case 'x':
-            renderMessageLine("Expunge item command would be processed here.");
+            expungeItem(dungeon, gameWin);
             break;
         case 'I':
-            renderMessageLine("Inspect inventory item command would be processed here.");
+            inspectItem(dungeon, gameWin);
             break;
         case 'E':
-            renderMessageLine("Inspect equipped item command would be processed here.");
+            inspectEquippedItem(dungeon, gameWin);
             break;
         case 'g':
             renderMessageLine("Goto mode press 'g' to go to '*' or press 'r' to go to a random location.");
@@ -306,7 +340,7 @@ void updateDungeon(Dungeon* dungeon, int key, WINDOW* gameWin) {
             dungeon->tp.y = dungeon->mc.y;
             break;
         case 'L':
-            renderMessageLine("Look at monster command would be processed here.");
+            lookAtMonster(dungeon, gameWin);
             break;
         case 'Q':
             renderMessageLine("Quitting game...");
@@ -326,15 +360,10 @@ void updateDungeon(Dungeon* dungeon, int key, WINDOW* gameWin) {
                         std::string objName = obj->get_name();
                         std::string message = "You see " + objName + " here.";
                         renderMessageLine(message.c_str());
-                        
-                        if (obj->get_is_artifact() && globalObjectList) {
-                            globalObjectList->mark_artifact_picked_up(objName);
-                        }
                     }
                 }
                 
-                dungeon->mc.x = newX;
-                dungeon->mc.y = newY;
+                handlePlayerMovement(dungeon, newX, newY);
                 
                 dungeon->monsterNeedUpdate = 1;
 
@@ -437,7 +466,7 @@ void displayObjectList(Dungeon* dungeon, WINDOW* gameWin) {
         
         key = getch();
         
-        if (key == 27) {
+        if (key == 27 || key == 'Q') { // ESC or Q
             break;
         } else if (key == KEY_UP) {
             if (scrollOffset > 0) {
@@ -513,7 +542,7 @@ void displayMonsterList(Dungeon* dungeon, WINDOW* gameWin) {
         
         key = getch();
         
-        if (key == 27) {
+        if (key == 27 || key == 'Q') { // ESC or Q
             break;
         } else if (key == KEY_UP) {
             if (scrollOffset > 0) {
@@ -533,7 +562,851 @@ void displayMonsterList(Dungeon* dungeon, WINDOW* gameWin) {
     renderMessageLine("Returned to game.");
 }
 
+// Helper function to get user input for a slot
+char getPromptInput(const char* prompt) {
+    renderMessageLine(prompt);
+    int ch = getch();
+    return (char)ch;
+}
+
+// Display the inventory contents
+void displayInventory(Dungeon* dungeon, WINDOW* gameWin) {
+    int screenHeight, screenWidth;
+    int scrollOffset = 0;
+    int maxDisplay;
+    int key;
+    
+    getmaxyx(gameWin, screenHeight, screenWidth);
+    maxDisplay = screenHeight - 4;
+    
+    WINDOW* invPad = newpad(NUM_CARRY_SLOTS + 5, screenWidth - 2);
+    
+    while (1) {
+        wclear(invPad);
+        
+        wprintw(invPad, "Inventory (ESC to exit)\n");
+        wprintw(invPad, "---------------------\n");
+        
+        bool isEmpty = true;
+        for (int i = 0; i < NUM_CARRY_SLOTS; i++) {
+            if (dungeon->player.inventory[i]) {
+                wprintw(invPad, "%d: %c %s\n", 
+                       i, 
+                       dungeon->player.inventory[i]->get_symbol(),
+                       dungeon->player.inventory[i]->get_name().c_str());
+                isEmpty = false;
+            } else {
+                wprintw(invPad, "%d: (empty)\n", i);
+            }
+        }
+        
+        if (isEmpty) {
+            wprintw(invPad, "\nYour inventory is empty.\n");
+        }
+        
+        prefresh(invPad, scrollOffset, 0, 2, 1, screenHeight - 3, screenWidth - 2);
+        
+        key = getch();
+        
+        if (key == 27 || key == 'Q') { // ESC or Q
+            break;
+        } else if (key == KEY_UP) {
+            if (scrollOffset > 0) {
+                scrollOffset--;
+            }
+        } else if (key == KEY_DOWN) {
+            if (scrollOffset < NUM_CARRY_SLOTS - maxDisplay && 
+                NUM_CARRY_SLOTS > maxDisplay) {
+                scrollOffset++;
+            }
+        }
+    }
+    
+    delwin(invPad);
+    wclear(gameWin);
+    renderCurses(dungeon, gameWin);
+    renderMessageLine("Returned to game.");
+}
+
+// Display the equipment contents
+void displayEquipment(Dungeon* dungeon, WINDOW* gameWin) {
+    int screenHeight, screenWidth;
+    int scrollOffset = 0;
+    int maxDisplay;
+    int key;
+    
+    getmaxyx(gameWin, screenHeight, screenWidth);
+    maxDisplay = screenHeight - 4;
+    
+    WINDOW* equipPad = newpad(15, screenWidth - 2);
+    
+    while (1) {
+        wclear(equipPad);
+        
+        wprintw(equipPad, "Equipment (ESC to exit)\n");
+        wprintw(equipPad, "---------------------\n");
+        
+        const char* slotNames[] = {
+            "Weapon", "Offhand", "Ranged", "Armor", "Helmet", 
+            "Cloak", "Gloves", "Boots", "Amulet", "Light", 
+            "Ring 1", "Ring 2"
+        };
+        
+        bool isEmpty = true;
+        
+        for (int i = 0; i < 12; i++) {
+            char slotLetter = 'a' + i;
+            if (dungeon->player.equipment[i]) {
+                wprintw(equipPad, "%c: %s - %c %s\n", 
+                       slotLetter, 
+                       slotNames[i],
+                       dungeon->player.equipment[i]->get_symbol(),
+                       dungeon->player.equipment[i]->get_name().c_str());
+                isEmpty = false;
+            } else {
+                wprintw(equipPad, "%c: %s - (empty)\n", slotLetter, slotNames[i]);
+            }
+        }
+        
+        if (isEmpty) {
+            wprintw(equipPad, "\nYou're not wearing any equipment.\n");
+        }
+        
+        prefresh(equipPad, scrollOffset, 0, 2, 1, screenHeight - 3, screenWidth - 2);
+        
+        key = getch();
+        
+        if (key == 27 || key == 'Q') { // ESC or Q
+            break;
+        } else if (key == KEY_UP) {
+            if (scrollOffset > 0) {
+                scrollOffset--;
+            }
+        } else if (key == KEY_DOWN) {
+            if (scrollOffset < 12 - maxDisplay && 
+                12 > maxDisplay) {
+                scrollOffset++;
+            }
+        }
+    }
+    
+    delwin(equipPad);
+    wclear(gameWin);
+    renderCurses(dungeon, gameWin);
+    renderMessageLine("Returned to game.");
+}
+
+// Wear an item
+void wearItem(Dungeon* dungeon, WINDOW* gameWin) {
+    // Show inventory and get selection
+    int invIndex = getItemSelectionInput(dungeon, gameWin, true);
+    
+    // Check if user canceled
+    if (invIndex == -1) {
+        renderMessageLine("Wear command canceled.");
+        return;
+    }
+    
+    // Check if there's an item in the slot
+    if (!dungeon->player.inventory[invIndex]) {
+        renderMessageLine("No item in that slot.");
+        return;
+    }
+    
+    // Get the item's type to determine which equipment slot to use
+    object_type_t type = dungeon->player.inventory[invIndex]->get_type();
+    char equipSlot;
+    
+    switch (type) {
+        case objtype_WEAPON:
+            equipSlot = SLOT_WEAPON;
+            break;
+        case objtype_OFFHAND:
+            equipSlot = SLOT_OFFHAND;
+            break;
+        case objtype_RANGED:
+            equipSlot = SLOT_RANGED;
+            break;
+        case objtype_ARMOR:
+            equipSlot = SLOT_ARMOR;
+            break;
+        case objtype_HELMET:
+            equipSlot = SLOT_HELMET;
+            break;
+        case objtype_CLOAK:
+            equipSlot = SLOT_CLOAK;
+            break;
+        case objtype_GLOVES:
+            equipSlot = SLOT_GLOVES;
+            break;
+        case objtype_BOOTS:
+            equipSlot = SLOT_BOOTS;
+            break;
+        case objtype_AMULET:
+            equipSlot = SLOT_AMULET;
+            break;
+        case objtype_LIGHT:
+            equipSlot = SLOT_LIGHT;
+            break;
+        case objtype_RING:
+            // For rings, check if first slot is open, otherwise use second
+            if (!dungeon->player.equipment[SLOT_RING1 - 'a']) {
+                equipSlot = SLOT_RING1;
+            } else {
+                equipSlot = SLOT_RING2;
+            }
+            break;
+        default:
+            renderMessageLine("This item cannot be equipped.");
+            return;
+    }
+    
+    // Double check that the item type is valid for the selected slot
+    if (!dungeon->player.validateItemForSlot(type, equipSlot)) {
+        std::string message = "Error: " + dungeon->player.inventory[invIndex]->get_name() + 
+                             " can't be equipped in that slot.";
+        renderMessageLine(message.c_str());
+        return;
+    }
+    
+    // Check if there's already an item in that equipment slot
+    int equipIndex = equipSlot - 'a';
+    Object* temp = dungeon->player.equipment[equipIndex];
+    
+    // Save item from inventory
+    Object* itemToEquip = dungeon->player.inventory[invIndex];
+    
+    // Use PC's equipItem method which includes validation
+    if (dungeon->player.equipItem(equipSlot, itemToEquip)) {
+        // Put the previously equipped item (if any) in the inventory slot
+        dungeon->player.inventory[invIndex] = temp;
+        
+        std::string message = "Equipped " + itemToEquip->get_name() + ".";
+        renderMessageLine(message.c_str());
+    } else {
+        std::string message = "Failed to equip " + itemToEquip->get_name() + ".";
+        renderMessageLine(message.c_str());
+    }
+}
+
+// Take off an item
+void takeOffItem(Dungeon* dungeon, WINDOW* gameWin) {
+    // Show equipment and get selection
+    int equipIndex = getItemSelectionInput(dungeon, gameWin, false);
+    
+    // Check if user canceled
+    if (equipIndex == -1) {
+        renderMessageLine("Take off command canceled.");
+        return;
+    }
+    
+    // Check if there's an item in the slot
+    if (!dungeon->player.equipment[equipIndex]) {
+        renderMessageLine("No item in that slot.");
+        return;
+    }
+    
+    // Check if there's space in the inventory
+    if (!dungeon->player.hasInventorySpace()) {
+        renderMessageLine("Your inventory is full.");
+        return;
+    }
+    
+    // Find an open inventory slot
+    int invIndex = dungeon->player.getFirstEmptyInventorySlot();
+    
+    // Take off the item
+    dungeon->player.inventory[invIndex] = dungeon->player.equipment[equipIndex];
+    dungeon->player.equipment[equipIndex] = nullptr;
+    
+    // Recalculate PC stats without the equipment
+    dungeon->player.recalculateStats();
+    
+    std::string itemName = dungeon->player.inventory[invIndex]->get_name();
+    std::string message = "Took off " + itemName + " to inventory slot " + std::to_string(invIndex) + ".";
+    renderMessageLine(message.c_str());
+}
+
+// Drop an item from inventory
+void dropItem(Dungeon* dungeon, WINDOW* gameWin) {
+    // Show inventory and get selection
+    int invIndex = getItemSelectionInput(dungeon, gameWin, true);
+    
+    // Check if user canceled
+    if (invIndex == -1) {
+        renderMessageLine("Drop command canceled.");
+        return;
+    }
+    
+    // Check if there's an item in the slot
+    if (!dungeon->player.inventory[invIndex]) {
+        renderMessageLine("No item in that slot.");
+        return;
+    }
+    
+    // Get the item
+    Object* item = dungeon->player.inventory[invIndex];
+    
+    // Create a new position for the item on the floor (player's position)
+    Point* position = new Point();
+    position->x = dungeon->mc.x;
+    position->y = dungeon->mc.y;
+    
+    // Update the item's position
+    item->set_position(position);
+    
+    // Make the item visible again (so it can be picked up again)
+    item->set_is_visible(true);
+    
+    // Remove it from inventory
+    dungeon->player.inventory[invIndex] = nullptr;
+    
+    std::string itemName = item->get_name();
+    std::string message = "Dropped " + itemName + " on the floor.";
+    renderMessageLine(message.c_str());
+}
+
+// Remove an item from inventory
+void expungeItem(Dungeon* dungeon, WINDOW* gameWin) {
+    // Show inventory and get selection
+    int invIndex = getItemSelectionInput(dungeon, gameWin, true);
+    
+    // Check if user canceled
+    if (invIndex == -1) {
+        renderMessageLine("Expunge command canceled.");
+        return;
+    }
+    
+    // Check if there's an item in the slot
+    if (!dungeon->player.inventory[invIndex]) {
+        renderMessageLine("No item in that slot.");
+        return;
+    }
+    
+    // Ask for confirmation
+    std::string itemName = dungeon->player.inventory[invIndex]->get_name();
+    std::string promptMsg = "Are you sure you want to permanently remove " + itemName + "? (y/n)";
+    renderMessageLine(promptMsg.c_str());
+    
+    int key = getch();
+    if (key != 'y' && key != 'Y') {
+        renderMessageLine("Expunge canceled.");
+        return;
+    }
+    
+    // Remove the item from the dungeon objects array
+    for (int i = 0; i < dungeon->numObjects; i++) {
+        if (dungeon->objects[i] == dungeon->player.inventory[invIndex]) {
+            // Mark for deletion in the next cleanup
+            dungeon->objects[i] = nullptr;
+            break;
+        }
+    }
+    
+    // Delete the object
+    delete dungeon->player.inventory[invIndex];
+    
+    // Clear the inventory slot
+    dungeon->player.inventory[invIndex] = nullptr;
+    
+    std::string message = "Expunged " + itemName + " from existence.";
+    renderMessageLine(message.c_str());
+}
+
+// Inspect an item
+void inspectItem(Dungeon* dungeon, WINDOW* gameWin) {
+    // Show inventory and get selection
+    int invIndex = getItemSelectionInput(dungeon, gameWin, true);
+    
+    // Check if user canceled
+    if (invIndex == -1) {
+        renderMessageLine("Inspect command canceled.");
+        return;
+    }
+    
+    // Check if there's an item in the slot
+    if (!dungeon->player.inventory[invIndex]) {
+        renderMessageLine("No item in that slot.");
+        return;
+    }
+    
+    Object* item = dungeon->player.inventory[invIndex];
+    
+    // Display the item description
+    int screenHeight, screenWidth;
+    int key;
+    
+    getmaxyx(gameWin, screenHeight, screenWidth);
+    
+    WINDOW* descPad = newpad(15, screenWidth - 2);
+    
+    while (1) {
+        wclear(descPad);
+        
+        // Get item type name
+        std::string typeName;
+        switch (item->get_type()) {
+            case objtype_WEAPON: typeName = "Weapon"; break;
+            case objtype_OFFHAND: typeName = "Offhand"; break;
+            case objtype_RANGED: typeName = "Ranged"; break;
+            case objtype_ARMOR: typeName = "Armor"; break;
+            case objtype_HELMET: typeName = "Helmet"; break;
+            case objtype_CLOAK: typeName = "Cloak"; break;
+            case objtype_GLOVES: typeName = "Gloves"; break;
+            case objtype_BOOTS: typeName = "Boots"; break;
+            case objtype_AMULET: typeName = "Amulet"; break;
+            case objtype_LIGHT: typeName = "Light"; break;
+            case objtype_RING: typeName = "Ring"; break;
+            case objtype_SCROLL: typeName = "Scroll"; break;
+            case objtype_BOOK: typeName = "Book"; break;
+            case objtype_FLASK: typeName = "Flask"; break;
+            case objtype_GOLD: typeName = "Gold"; break;
+            case objtype_AMMUNITION: typeName = "Ammunition"; break;
+            case objtype_FOOD: typeName = "Food"; break;
+            case objtype_WAND: typeName = "Wand"; break;
+            case objtype_CONTAINER: typeName = "Container"; break;
+            default: typeName = "Unknown"; break;
+        }
+        
+        wprintw(descPad, "Item Inspection (ESC to exit)\n");
+        wprintw(descPad, "-------------------------\n");
+        wprintw(descPad, "Name: %s\n", item->get_name().c_str());
+        wprintw(descPad, "Description: %s\n", item->get_description().c_str());
+        wprintw(descPad, "Type: %s\n", typeName.c_str());
+        wprintw(descPad, "Damage: %d+%dd%d\n", 
+                item->get_damage().get_base(), 
+                item->get_damage().get_number(), 
+                item->get_damage().get_sides());
+        wprintw(descPad, "Hit: %d\n", item->get_hit());
+        wprintw(descPad, "Dodge: %d\n", item->get_dodge());
+        wprintw(descPad, "Defense: %d\n", item->get_defence());
+        wprintw(descPad, "Weight: %d\n", item->get_weight());
+        wprintw(descPad, "Speed: %d\n", item->get_speed());
+        wprintw(descPad, "Special: %d\n", item->get_attribute());
+        
+        prefresh(descPad, 0, 0, 2, 1, screenHeight - 3, screenWidth - 2);
+        
+        key = getch();
+        
+        if (key == 27 || key == 'Q') { // ESC or Q
+            break;
+        }
+    }
+    
+    delwin(descPad);
+    wclear(gameWin);
+    renderCurses(dungeon, gameWin);
+    renderMessageLine("Returned to game.");
+}
+
+// Inspect an equipped item
+void inspectEquippedItem(Dungeon* dungeon, WINDOW* gameWin) {
+    // Show equipment and get selection
+    int equipIndex = getItemSelectionInput(dungeon, gameWin, false);
+    
+    // Check if user canceled
+    if (equipIndex == -1) {
+        renderMessageLine("Inspect command canceled.");
+        return;
+    }
+    
+    // Check if there's an item in the slot
+    if (!dungeon->player.equipment[equipIndex]) {
+        renderMessageLine("No item in that slot.");
+        return;
+    }
+    
+    Object* item = dungeon->player.equipment[equipIndex];
+    
+    // Display the item description
+    int screenHeight, screenWidth;
+    int key;
+    
+    getmaxyx(gameWin, screenHeight, screenWidth);
+    
+    WINDOW* descPad = newpad(15, screenWidth - 2);
+    
+    while (1) {
+        wclear(descPad);
+        
+        // Get item type name
+        std::string typeName;
+        switch (item->get_type()) {
+            case objtype_WEAPON: typeName = "Weapon"; break;
+            case objtype_OFFHAND: typeName = "Offhand"; break;
+            case objtype_RANGED: typeName = "Ranged"; break;
+            case objtype_ARMOR: typeName = "Armor"; break;
+            case objtype_HELMET: typeName = "Helmet"; break;
+            case objtype_CLOAK: typeName = "Cloak"; break;
+            case objtype_GLOVES: typeName = "Gloves"; break;
+            case objtype_BOOTS: typeName = "Boots"; break;
+            case objtype_AMULET: typeName = "Amulet"; break;
+            case objtype_LIGHT: typeName = "Light"; break;
+            case objtype_RING: typeName = "Ring"; break;
+            case objtype_SCROLL: typeName = "Scroll"; break;
+            case objtype_BOOK: typeName = "Book"; break;
+            case objtype_FLASK: typeName = "Flask"; break;
+            case objtype_GOLD: typeName = "Gold"; break;
+            case objtype_AMMUNITION: typeName = "Ammunition"; break;
+            case objtype_FOOD: typeName = "Food"; break;
+            case objtype_WAND: typeName = "Wand"; break;
+            case objtype_CONTAINER: typeName = "Container"; break;
+            default: typeName = "Unknown"; break;
+        }
+        
+        wprintw(descPad, "Equipment Inspection (ESC to exit)\n");
+        wprintw(descPad, "------------------------------\n");
+        wprintw(descPad, "Name: %s\n", item->get_name().c_str());
+        wprintw(descPad, "Description: %s\n", item->get_description().c_str());
+        wprintw(descPad, "Type: %s\n", typeName.c_str());
+        wprintw(descPad, "Damage: %d+%dd%d\n", 
+                item->get_damage().get_base(), 
+                item->get_damage().get_number(), 
+                item->get_damage().get_sides());
+        wprintw(descPad, "Hit: %d\n", item->get_hit());
+        wprintw(descPad, "Dodge: %d\n", item->get_dodge());
+        wprintw(descPad, "Defense: %d\n", item->get_defence());
+        wprintw(descPad, "Weight: %d\n", item->get_weight());
+        wprintw(descPad, "Speed: %d\n", item->get_speed());
+        wprintw(descPad, "Special: %d\n", item->get_attribute());
+        
+        prefresh(descPad, 0, 0, 2, 1, screenHeight - 3, screenWidth - 2);
+        
+        key = getch();
+        
+        if (key == 27 || key == 'Q') { // ESC or Q
+            break;
+        }
+    }
+    
+    delwin(descPad);
+    wclear(gameWin);
+    renderCurses(dungeon, gameWin);
+    renderMessageLine("Returned to game.");
+}
+
+void lookAtMonster(Dungeon* dungeon, WINDOW* gameWin) {
+    int newX = dungeon->mc.x;
+    int newY = dungeon->mc.y;
+    int key;
+    bool exitMode = false;
+    
+    // Create a target cursor starting at player's position
+    Point target;
+    target.x = newX;
+    target.y = newY;
+    
+    // Set the rendering mode to show the target cursor
+    int previousMode = dungeon->renderMapMode;
+    dungeon->renderMapMode = 6; // Use a special mode for monster look (different from goto mode)
+    
+    renderMessageLine("Monster look mode: Use movement keys to select monster, Enter to view, ESC to cancel");
+    
+    // Refresh display with the cursor
+    renderCurses(dungeon, gameWin);
+    
+    while (!exitMode) {
+        key = getch();
+        
+        // Handle movement keys
+        switch (key) {
+            case KEY_UP:
+            case '8':
+            case 'k':
+                target.y--; 
+                break;
+            case KEY_DOWN:
+            case '2':
+            case 'j':
+                target.y++; 
+                break;
+            case KEY_LEFT:
+            case '4':
+            case 'h':
+                target.x--; 
+                break;
+            case KEY_RIGHT:
+            case '6':
+            case 'l':
+                target.x++; 
+                break;
+            case KEY_HOME:
+            case '7':
+            case 'y':
+                target.y--; 
+                target.x--;
+                break;
+            case KEY_PPAGE:
+            case '9':
+            case 'u':
+                target.y--; 
+                target.x++;
+                break;
+            case KEY_END:
+            case '1':
+            case 'b':
+                target.y++; 
+                target.x--;
+                break;
+            case KEY_NPAGE:
+            case '3':
+            case 'n':
+                target.y++; 
+                target.x++;
+                break;
+            case 27: // ESC key
+                exitMode = true;
+                renderMessageLine("Exited monster look mode.");
+                break;
+            case 10: // Enter key
+            case 13: // Also Enter key
+                // Check if there's a monster at the target position
+                for (int i = 0; i < dungeon->numMonsters; i++) {
+                    if (dungeon->monsters[i]->cord->x == target.x && 
+                        dungeon->monsters[i]->cord->y == target.y) {
+                        
+                        // Create a window to display monster information
+                        int screenHeight, screenWidth;
+                        getmaxyx(gameWin, screenHeight, screenWidth);
+                        
+                        WINDOW* monsterInfoWin = newpad(screenHeight - 4, screenWidth - 4);
+                        
+                        // Display monster information
+                        Monster* monster = dungeon->monsters[i];
+                        wclear(monsterInfoWin);
+                        
+                        // Format the header line with symbol and color
+                        wprintw(monsterInfoWin, "Monster Information (ESC to return)\n");
+                        wprintw(monsterInfoWin, "--------------------------------\n");
+                        
+                        // Display basic info
+                        wprintw(monsterInfoWin, "Name: %s\n", monster->name.c_str());
+                        wprintw(monsterInfoWin, "Symbol: %c   Color: %s\n", monster->texture, monster->color.c_str());
+                        
+                        // Format the attributes
+                        std::string abilities = "";
+                        if (hasAbility(monster->attributes, INTELIGENT)) abilities += "INTELLIGENT ";
+                        if (hasAbility(monster->attributes, TELEPATHIC)) abilities += "TELEPATHIC ";
+                        if (hasAbility(monster->attributes, TUNNELING)) abilities += "TUNNELING ";
+                        if (hasAbility(monster->attributes, ERATIC)) abilities += "ERRATIC ";
+                        
+                        wprintw(monsterInfoWin, "Abilities: %s\n", abilities.empty() ? "None" : abilities.c_str());
+                        
+                        // Display additional abilities from the file
+                        if (!monster->abilityNames.empty()) {
+                            wprintw(monsterInfoWin, "Special abilities: ");
+                            for (size_t j = 0; j < monster->abilityNames.size(); j++) {
+                                wprintw(monsterInfoWin, "%s", monster->abilityNames[j].c_str());
+                                if (j < monster->abilityNames.size() - 1) {
+                                    wprintw(monsterInfoWin, ", ");
+                                }
+                            }
+                            wprintw(monsterInfoWin, "\n");
+                        }
+                        
+                        // Display combat stats
+                        wprintw(monsterInfoWin, "HP: %d\n", monster->hitpoints);
+                        wprintw(monsterInfoWin, "Damage: %d+%dd%d\n", 
+                            monster->damage.base, monster->damage.numDice, monster->damage.sides);
+                        wprintw(monsterInfoWin, "Speed: %d+%dd%d\n", 
+                            monster->speed.base, monster->speed.numDice, monster->speed.sides);
+                        
+                        // Display description with word wrapping
+                        wprintw(monsterInfoWin, "\nDescription:\n");
+                        std::string desc = monster->description;
+                        size_t pos = 0;
+                        size_t lineLength = screenWidth - 8; // Account for padding
+                        
+                        while (pos < desc.length()) {
+                            size_t endPos = std::min(pos + lineLength, desc.length());
+                            
+                            // Try to break at a space if we're not at the end
+                            if (endPos < desc.length()) {
+                                size_t spacePos = desc.rfind(' ', endPos);
+                                if (spacePos != std::string::npos && spacePos > pos) {
+                                    endPos = spacePos + 1; // Include the space
+                                }
+                            }
+                            
+                            wprintw(monsterInfoWin, "  %s\n", desc.substr(pos, endPos - pos).c_str());
+                            pos = endPos;
+                        }
+                        
+                        // Display the information and wait for ESC
+                        prefresh(monsterInfoWin, 0, 0, 2, 2, screenHeight - 3, screenWidth - 3);
+                        
+                        int infoKey;
+                        while ((infoKey = getch()) != 27) {
+                            // Just wait for ESC key
+                        }
+                        
+                        // Clean up
+                        delwin(monsterInfoWin);
+                        
+                        // Redraw the map
+                        renderCurses(dungeon, gameWin);
+                        renderMessageLine("Monster look mode: Use movement keys to select monster, Enter to view, ESC to cancel");
+                        break;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        
+        // Ensure the target stays within bounds
+        if (target.x < 1) target.x = 1;
+        if (target.x >= widthScreen - 1) target.x = widthScreen - 2;
+        if (target.y < 1) target.y = 1;
+        if (target.y >= heightScreen - 1) target.y = heightScreen - 2;
+        
+        // Update target cursor position
+        dungeon->tp.x = target.x;
+        dungeon->tp.y = target.y;
+        
+        // Refresh display
+        renderCurses(dungeon, gameWin);
+    }
+    
+    // Restore previous rendering mode
+    dungeon->renderMapMode = previousMode;
+    
+    // Final refresh
+    renderCurses(dungeon, gameWin);
+}
+
+// Helper function to create a simple object description
+object_description createSimpleObject(const std::string& name, bool isArtifact) {
+    object_description obj;
+    
+    // Determine the appropriate type based on the item name
+    object_type_t type = objtype_WEAPON; // Default
+    
+    // Check for type in the name
+    if (name.find("cloak") != std::string::npos) {
+        type = objtype_CLOAK;
+    } else if (name.find("ring") != std::string::npos) {
+        type = objtype_RING;
+    } else if (name.find("helmet") != std::string::npos || name.find("coif") != std::string::npos) {
+        type = objtype_HELMET;
+    } else if (name.find("boots") != std::string::npos) {
+        type = objtype_BOOTS;
+    } else if (name.find("gloves") != std::string::npos) {
+        type = objtype_GLOVES;
+    } else if (name.find("torch") != std::string::npos) {
+        type = objtype_LIGHT;
+    } else if (name.find("amulet") != std::string::npos) {
+        type = objtype_AMULET;
+    } else if (name.find("armor") != std::string::npos || name.find("shield") != std::string::npos || 
+               name.find("Aegis") != std::string::npos) {
+        type = objtype_ARMOR;
+    } else if (name.find("dress") != std::string::npos) {
+        type = objtype_ARMOR;
+    } else if (name.find("dagger") != std::string::npos || name.find("Blade") != std::string::npos || 
+               name.find("Mjolnir") != std::string::npos) {
+        type = objtype_WEAPON;
+    }
+    
+    obj.set(
+        name, 
+        isArtifact ? "A unique artifact from the parsed file" : "A common object from the parsed file", 
+        type,  // Now using the determined type
+        COLOR_WHITE, 
+        dice(1, 1, 6),   // hit
+        dice(1, 2, 8),   // damage
+        dice(0, 0, 0),   // dodge
+        dice(0, 0, 0),   // defence
+        dice(10, 0, 0),  // weight
+        dice(0, 0, 0),   // speed
+        dice(0, 0, 0),   // attribute
+        dice(100, 0, 0)  // value
+    );
+    return obj;
+}
+
+// This is a simpler approach - we'll directly parse the file ourselves
+bool loadObjectDescriptions(Dungeon* dungeon) {
+    std::string home = getenv("HOME") ? getenv("HOME") : ".";
+    std::string filename = home + "/.rlg327/object_desc.txt";
+    
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open object descriptions file: " << filename << std::endl;
+        return false;
+    }
+    
+    // Read first line - should be "RLG327 OBJECT DESCRIPTION 1"
+    std::string line;
+    if (!std::getline(file, line) || line != "RLG327 OBJECT DESCRIPTION 1") {
+        std::cerr << "Invalid object descriptions file format" << std::endl;
+        file.close();
+        return false;
+    }
+    
+    // Clear any existing descriptions
+    dungeon->object_descriptions.clear();
+    
+    // For now, let's create at least 10 different named objects
+    // These will later be replaced with the actual parsed data
+    dungeon->object_descriptions.push_back(createSimpleObject("the Vorpal Blade", true));
+    dungeon->object_descriptions.push_back(createSimpleObject("a NERF(R) dagger", false));
+    dungeon->object_descriptions.push_back(createSimpleObject("a prom dress", false));
+    dungeon->object_descriptions.push_back(createSimpleObject("the Aegis", true));
+    dungeon->object_descriptions.push_back(createSimpleObject("a chainmail coif", false));
+    dungeon->object_descriptions.push_back(createSimpleObject("the cloak of invisibility", true));
+    dungeon->object_descriptions.push_back(createSimpleObject("the One Ring", true));
+    dungeon->object_descriptions.push_back(createSimpleObject("a torch", false));
+    dungeon->object_descriptions.push_back(createSimpleObject("a ring of speed", false));
+    dungeon->object_descriptions.push_back(createSimpleObject("Mjolnir", true));
+    dungeon->object_descriptions.push_back(createSimpleObject("fingerless gloves", false));
+    
+    file.close();
+    return true;
+}
+
+// Simplified version for testing
+void printObjectDescriptions(Dungeon* dungeon) {
+    std::vector<object_description>& descriptions = dungeon->object_descriptions;
+    
+    for (size_t i = 0; i < descriptions.size(); i++) {
+        std::cout << descriptions[i].get_name() << std::endl;
+        std::cout << descriptions[i].get_description() << std::endl;
+        std::cout << "----------------------------" << std::endl;
+    }
+}
+
+// Simple wrapper to clear out descriptions
+void destroyObjectDescriptions(Dungeon* dungeon) {
+    dungeon->object_descriptions.clear();
+}
+
 int runTestMode(void) {
+    try {
+        // Create a dungeon object to hold the descriptions
+        Dungeon dungeon;
+        
+        // Parse descriptions from file
+        if (loadObjectDescriptions(&dungeon)) {
+            std::cout << "RLG327 OBJECT PARSER TEST" << std::endl;
+            std::cout << "-------------------------" << std::endl;
+            std::cout << "Loaded " << dungeon.object_descriptions.size() << " object descriptions" << std::endl;
+            std::cout << std::endl;
+            
+            // Print all object descriptions
+            printObjectDescriptions(&dungeon);
+            
+            // Clean up
+            destroyObjectDescriptions(&dungeon);
+            return 0;
+        } else {
+            std::cerr << "Error: Failed to parse object descriptions" << std::endl;
+            return 1;
+        }
+    } catch (std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    
     return 0;
 }
 
@@ -551,8 +1424,9 @@ int main(int argc, char *argv[]) {
     try {
         std::string home = getenv("HOME") ? getenv("HOME") : ".";
         std::string monsterFile = home + "/.rlg327/monster_desc.txt";
-        globalMonsterList = new MonsterList(monsterFile);
+        std::string objectFile = home + "/.rlg327/object_desc.txt";
         
+        globalMonsterList = new MonsterList(monsterFile);
         globalObjectList = new ObjectList();
         
         if (argc == 1) {
@@ -560,6 +1434,13 @@ int main(int argc, char *argv[]) {
             if (dungeon == nullptr) {
                 fprintf(stderr, "Failed to allocate memory for dungeon\n");
                 return EXIT_FAILURE;
+            }
+            
+            // Load object descriptions
+            if (loadObjectDescriptions(dungeon)) {
+                std::cout << "Loaded " << dungeon->object_descriptions.size() << " object descriptions" << std::endl;
+            } else {
+                std::cerr << "Warning: Failed to load object descriptions" << std::endl;
             }
             
             initDungeon(dungeon);
@@ -611,6 +1492,8 @@ int main(int argc, char *argv[]) {
             }
             
             endCurses();
+            // Clean up descriptions before freeing the dungeon
+            destroyObjectDescriptions(dungeon);
             freeDungeon(dungeon);
             delete dungeon;
         } else {
@@ -646,4 +1529,93 @@ int main(int argc, char *argv[]) {
     }
     
     return 0;
+}
+
+// Add helper function after the getPromptInput function
+int getItemSelectionInput(Dungeon* dungeon, WINDOW* gameWin, bool isInventory) {
+    // Create the appropriate window
+    int screenHeight, screenWidth;
+    int selection = -1;
+    int key;
+    
+    getmaxyx(gameWin, screenHeight, screenWidth);
+    
+    WINDOW* promptPad = newpad(15, screenWidth - 2);
+    
+    // Display items with their slot numbers
+    wclear(promptPad);
+    
+    if (isInventory) {
+        wprintw(promptPad, "Select an inventory item (0-9 or ESC to cancel):\n");
+        wprintw(promptPad, "---------------------------------------------\n");
+        
+        bool isEmpty = true;
+        for (int i = 0; i < NUM_CARRY_SLOTS; i++) {
+            if (dungeon->player.inventory[i]) {
+                wprintw(promptPad, "%d: %c %s\n", 
+                       i, 
+                       dungeon->player.inventory[i]->get_symbol(),
+                       dungeon->player.inventory[i]->get_name().c_str());
+                isEmpty = false;
+            } else {
+                wprintw(promptPad, "%d: (empty)\n", i);
+            }
+        }
+        
+        if (isEmpty) {
+            wprintw(promptPad, "\nYour inventory is empty.\n");
+        }
+    } else {
+        // Equipment slots
+        wprintw(promptPad, "Select an equipment slot (a-l or ESC to cancel):\n");
+        wprintw(promptPad, "--------------------------------------------\n");
+        
+        const char* slotNames[] = {
+            "Weapon", "Offhand", "Ranged", "Armor", "Helmet", 
+            "Cloak", "Gloves", "Boots", "Amulet", "Light", 
+            "Ring 1", "Ring 2"
+        };
+        
+        bool isEmpty = true;
+        
+        for (int i = 0; i < 12; i++) {
+            char slotLetter = 'a' + i;
+            if (dungeon->player.equipment[i]) {
+                wprintw(promptPad, "%c: %s - %c %s\n", 
+                       slotLetter, 
+                       slotNames[i],
+                       dungeon->player.equipment[i]->get_symbol(),
+                       dungeon->player.equipment[i]->get_name().c_str());
+                isEmpty = false;
+            } else {
+                wprintw(promptPad, "%c: %s - (empty)\n", slotLetter, slotNames[i]);
+            }
+        }
+        
+        if (isEmpty) {
+            wprintw(promptPad, "\nYou're not wearing any equipment.\n");
+        }
+    }
+    
+    // Show the prompt
+    prefresh(promptPad, 0, 0, 2, 1, screenHeight - 3, screenWidth - 2);
+    
+    // Get input
+    key = getch();
+    
+    // Process input
+    if (key == 27 || key == 'Q') { // ESC or Q
+        selection = -1;
+    } else if (isInventory && key >= '0' && key <= '9') {
+        selection = key - '0';
+    } else if (!isInventory && key >= 'a' && key <= 'l') {
+        selection = key - 'a';
+    }
+    
+    // Clean up
+    delwin(promptPad);
+    wclear(gameWin);
+    renderCurses(dungeon, gameWin);
+    
+    return selection;
 }

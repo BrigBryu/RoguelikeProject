@@ -34,7 +34,14 @@ class dice {
   {
     this->sides = sides;
   }
-  int32_t roll(void) const;
+  int32_t roll() const
+  {
+    int32_t total = base;
+    for (uint32_t i = 0; i < number; i++) {
+      total += (rand() % sides) + 1;
+    }
+    return total;
+  }
   std::ostream &print(std::ostream &o);
   inline int32_t get_base() const
   {

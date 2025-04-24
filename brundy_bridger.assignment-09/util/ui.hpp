@@ -12,7 +12,7 @@ WINDOW* initGameMapWindow(void);
 // Render the dungeon using the map mode stored in dungeon->renderMapMode
 // modes: 0 = default map, 1 = non-tunneling distance map, 
 //        2 = tunneling distance map, 3 = hardness map
-//        4 = fog of war, 5 = goto map
+//        4 = fog of war, 5 = goto map, 6 = monster look map
 void renderCurses(Dungeon* dungeon, WINDOW* gameWin);
 
 // line 0

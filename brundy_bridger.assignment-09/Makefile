@@ -17,7 +17,8 @@ SRC = gameScreen.cpp \
       $(GAMEOBJECTS_DIR)/tile.cpp \
       $(GAMEOBJECTS_DIR)/simulate.cpp \
       $(GAMEOBJECTS_DIR)/npc.cpp \
-      $(GAMEOBJECTS_DIR)/object.cpp
+      $(GAMEOBJECTS_DIR)/object.cpp \
+      $(GAMEOBJECTS_DIR)/pc.cpp
 
 OBJ = $(SRC:.cpp=.o)
 TARGET = assignment09

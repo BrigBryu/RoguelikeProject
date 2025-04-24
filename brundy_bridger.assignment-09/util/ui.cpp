@@ -104,7 +104,8 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 // Render objects if there's one at this position and no monster or player
                 for (int o = 0; o < dungeon->numObjects && !printed; o++) {
                     if (dungeon->objects[o]->get_position()->x == j &&
-                        dungeon->objects[o]->get_position()->y == i) {
+                        dungeon->objects[o]->get_position()->y == i &&
+                        dungeon->objects[o]->get_is_visible()) {
                         // Apply color to object
                         int colorValue = dungeon->objects[o]->get_color();
                         // If color is BLACK, use WHITE instead (BLACK on BLACK is invisible)
@@ -194,7 +195,8 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 // Render objects in visible area if no monster or player
                 for (int o = 0; o < dungeon->numObjects && !printed; o++) {
                     if (dungeon->objects[o]->get_position()->x == j &&
-                        dungeon->objects[o]->get_position()->y == i) {
+                        dungeon->objects[o]->get_position()->y == i &&
+                        dungeon->objects[o]->get_is_visible()) {
                         // Only show objects in visible area
                         int dx = abs(j - dungeon->mc.x);
                         int dy = abs(i - dungeon->mc.y);
@@ -265,7 +267,8 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                 // Show objects in visible area in goto mode
                 for (int o = 0; o < dungeon->numObjects && !printed; o++) {
                     if (dungeon->objects[o]->get_position()->x == j &&
-                        dungeon->objects[o]->get_position()->y == i) {
+                        dungeon->objects[o]->get_position()->y == i &&
+                        dungeon->objects[o]->get_is_visible()) {
                         // Only show objects in visible area
                         int dx = abs(j - dungeon->mc.x);
                         int dy = abs(i - dungeon->mc.y);
@@ -276,6 +279,59 @@ void renderCurses(Dungeon* dungeon, WINDOW* gameWin) {
                             mvwaddch(gameWin, i, j, dungeon->objects[o]->get_symbol());
                             if (has_colors()) {
                                 wattroff(gameWin, COLOR_PAIR(1));
+                            }
+                            printed = 1;
+                        }
+                    }
+                }
+                
+                if (!printed) {
+                    // show remembered terrain
+                    if (dungeon->fogOfWar[i][j].type == ROCK) {
+                        mvwaddch(gameWin, i, j, ' ');
+                    } else {
+                        mvwaddch(gameWin, i, j, getCharacter(&dungeon->fogOfWar[i][j]));
+                    }
+                }
+            } else if (mode == 6) { // Monster look mode
+                if (dungeon->tp.x == j && dungeon->tp.y == i) {
+                    mvwaddch(gameWin, i, j, '*');
+                    printed = 1;
+                }
+                
+                for (int m = 0; m < dungeon->numMonsters && !printed; m++) {
+                    if (dungeon->monsters[m]->cord->x == j &&
+                        dungeon->monsters[m]->cord->y == i) {
+                        // Show monsters in discovered areas (fog of war)
+                        if (dungeon->fogOfWar[i][j].type != ROCK) {
+                            // Apply color to monster
+                            int colorValue = getMonsterColor(dungeon->monsters[m]->color);
+                            if (has_colors()) {
+                                wattron(gameWin, COLOR_PAIR(colorValue));
+                            }
+                            mvwaddch(gameWin, i, j, dungeon->monsters[m]->texture);
+                            if (has_colors()) {
+                                wattroff(gameWin, COLOR_PAIR(colorValue));
+                            }
+                            printed = 1;
+                        }
+                    }
+                }
+                
+                // Show objects in discovered areas
+                for (int o = 0; o < dungeon->numObjects && !printed; o++) {
+                    if (dungeon->objects[o]->get_position()->x == j &&
+                        dungeon->objects[o]->get_position()->y == i &&
+                        dungeon->objects[o]->get_is_visible()) {
+                        // Show objects in discovered areas
+                        if (dungeon->fogOfWar[i][j].type != ROCK) {
+                            int colorValue = COLOR_YELLOW;
+                            if (has_colors()) {
+                                wattron(gameWin, COLOR_PAIR(colorValue));
+                            }
+                            mvwaddch(gameWin, i, j, dungeon->objects[o]->get_symbol());
+                            if (has_colors()) {
+                                wattroff(gameWin, COLOR_PAIR(colorValue));
                             }
                             printed = 1;
                         }

@@ -163,10 +163,14 @@ void ObjectList::clear() {
 }
 
 void ObjectList::generate_objects(Dungeon* dungeon, int count) {
-    for (Object* obj : objects) {
-        delete obj;
+    // Clear existing objects
+    for (size_t i = 0; i < objects.size(); i++) {
+        delete objects[i];
     }
     objects.clear();
+    
+    // Check if we have object descriptions to use
+    bool useDescriptions = !dungeon->object_descriptions.empty();
     
     for (int attempt = 0; attempt < count * 5 && (int)objects.size() < count; attempt++) {
         if (dungeon->numRooms <= 0) {
@@ -182,24 +186,100 @@ void ObjectList::generate_objects(Dungeon* dungeon, int count) {
         position->x = x;
         position->y = y;
         
-        object_type_t type = (object_type_t)((rand() % 19) + 1);
+        bool isArtifact = false;
+        std::string name, description;
+        object_type_t type;
+        uint32_t color;
+        int hit, dodge, defence, weight, speed, attribute, value;
+        dice damage(0, 1, 1);
         
-        uint32_t colors[] = {COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE};
-        uint32_t color = colors[rand() % 7];
-        
-        int hit = rand() % 10;
-        dice damage(rand() % 5, 1 + rand() % 3, 4 + rand() % 8);
-        int dodge = rand() % 10;
-        int defence = rand() % 10;
-        int weight = rand() % 20;
-        int speed = rand() % 10;
-        int attribute = rand() % 10;
-        int value = rand() % 100;
-        
-        bool isArtifact = (rand() % 10 == 0);
-        
-        std::string name = (isArtifact ? "Artifact " : "") + std::string("Object ") + std::to_string(objects.size() + 1);
-        std::string description = std::string("This is ") + (isArtifact ? "a unique artifact" : "a common object");
+        if (useDescriptions) {
+            // Choose a random object description
+            int descIndex = rand() % dungeon->object_descriptions.size();
+            // Access the description
+            const object_description& desc = dungeon->object_descriptions[descIndex];
+            
+            name = desc.get_name();
+            description = desc.get_description();
+            
+            // Ensure the type is properly set from the description
+            type = desc.get_type();
+            
+            color = desc.get_color();
+            
+            // Manually generate random values instead of using roll()
+            // Use the dice's base + a random number between 1 and sides for each die
+            const dice& hitDice = desc.get_hit();
+            hit = hitDice.get_base();
+            for (int i = 0; i < hitDice.get_number(); i++) {
+                hit += (rand() % hitDice.get_sides()) + 1;
+            }
+            
+            damage = desc.get_damage();
+            
+            const dice& dodgeDice = desc.get_dodge();
+            dodge = dodgeDice.get_base();
+            for (int i = 0; i < dodgeDice.get_number(); i++) {
+                dodge += (rand() % dodgeDice.get_sides()) + 1;
+            }
+            
+            const dice& defenceDice = desc.get_defence();
+            defence = defenceDice.get_base();
+            for (int i = 0; i < defenceDice.get_number(); i++) {
+                defence += (rand() % defenceDice.get_sides()) + 1;
+            }
+            
+            const dice& weightDice = desc.get_weight();
+            weight = weightDice.get_base();
+            for (int i = 0; i < weightDice.get_number(); i++) {
+                weight += (rand() % weightDice.get_sides()) + 1;
+            }
+            
+            const dice& speedDice = desc.get_speed();
+            speed = speedDice.get_base();
+            for (int i = 0; i < speedDice.get_number(); i++) {
+                speed += (rand() % speedDice.get_sides()) + 1;
+            }
+            
+            const dice& attrDice = desc.get_attribute();
+            attribute = attrDice.get_base();
+            for (int i = 0; i < attrDice.get_number(); i++) {
+                attribute += (rand() % attrDice.get_sides()) + 1;
+            }
+            
+            const dice& valueDice = desc.get_value();
+            value = valueDice.get_base();
+            for (int i = 0; i < valueDice.get_number(); i++) {
+                value += (rand() % valueDice.get_sides()) + 1;
+            }
+            
+            // Check for artifact - see if name contains "artifact" (case insensitive)
+            std::string lowerName = name;
+            for (size_t i = 0; i < lowerName.length(); i++) {
+                lowerName[i] = tolower(lowerName[i]);
+            }
+            isArtifact = (lowerName.find("artifact") != std::string::npos);
+        } else {
+            // Generate random object properties
+            type = (object_type_t)((rand() % 19) + 1);
+            
+            uint32_t colors[] = {COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE};
+            color = colors[rand() % 7];
+            
+            hit = rand() % 10;
+            damage = dice(rand() % 5, 1 + rand() % 3, 4 + rand() % 8);
+            dodge = rand() % 10;
+            defence = rand() % 10;
+            weight = rand() % 20;
+            speed = rand() % 10;
+            attribute = rand() % 10;
+            value = rand() % 100;
+            
+            isArtifact = (rand() % 10 == 0);
+            
+            name = (isArtifact ? "Artifact " : "") + std::string("Object ") + std::to_string(objects.size() + 1);
+            description = std::string("This is ") + (isArtifact ? "a unique artifact" : "a common object");
+        }
         
         if (isArtifact && is_artifact_picked_up(name)) {
             delete position;

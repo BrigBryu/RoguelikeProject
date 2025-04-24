@@ -12,7 +12,7 @@ int32_t dice::roll(void) const
 
   if (sides) {
     for (i = 0; i < number; i++) {
-      total += rand_range(1, sides);
+      total += (rand() % sides) + 1;
     }
   }
 

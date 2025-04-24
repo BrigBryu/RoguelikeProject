@@ -33,6 +33,61 @@ typedef enum object_type {
 
 extern const char object_symbol[];
 
+// Object description class - used for reading from file
+class object_description {
+private:
+    std::string name, description;
+    object_type_t type;
+    uint32_t color;
+    dice hit, damage, dodge, defence, weight, speed, attribute, value;
+public:
+    object_description() : name(), description(), type(objtype_no_type),
+                        color(0), hit(), damage(),
+                        dodge(), defence(), weight(),
+                        speed(), attribute(), value()
+    {}
+    
+    void set(const std::string &name,
+           const std::string &description,
+           const object_type_t type,
+           const uint32_t color,
+           const dice &hit,
+           const dice &damage,
+           const dice &dodge,
+           const dice &defence,
+           const dice &weight,
+           const dice &speed,
+           const dice &attribute,
+           const dice &value) {
+        this->name = name;
+        this->description = description;
+        this->type = type;
+        this->color = color;
+        this->hit = hit;
+        this->damage = damage;
+        this->dodge = dodge;
+        this->defence = defence;
+        this->weight = weight;
+        this->speed = speed;
+        this->attribute = attribute;
+        this->value = value;
+    }
+    
+    // Accessor methods
+    inline const std::string &get_name() const { return name; }
+    inline const std::string &get_description() const { return description; }
+    inline const object_type_t get_type() const { return type; }
+    inline const uint32_t get_color() const { return color; }
+    inline const dice &get_hit() const { return hit; }
+    inline const dice &get_damage() const { return damage; }
+    inline const dice &get_dodge() const { return dodge; }
+    inline const dice &get_defence() const { return defence; }
+    inline const dice &get_weight() const { return weight; }
+    inline const dice &get_speed() const { return speed; }
+    inline const dice &get_attribute() const { return attribute; }
+    inline const dice &get_value() const { return value; }
+};
+
 class Object {
 private:
     std::string name;

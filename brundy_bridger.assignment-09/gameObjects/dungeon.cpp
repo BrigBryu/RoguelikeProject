@@ -10,6 +10,7 @@
 #include "npc.hpp"
 #include "object.hpp"
 #include "../util/globalVariables.hpp"
+#include "../util/ui.hpp"
 #include "heap.hpp"
 #include <queue>
 #include <algorithm>
@@ -75,6 +76,7 @@ void spawnObjects(Dungeon *dungeon, int num_objects) {
     
     // Use globalObjectList if available
     if (globalObjectList != nullptr) {
+        // Use the default generation method
         globalObjectList->generate_objects(dungeon, num_objects);
         
         // Add the generated objects to the dungeon
@@ -134,7 +136,8 @@ void clearObjects(Dungeon *dungeon) {
 Object* getObjectAt(Dungeon *dungeon, int x, int y) {
     for (int i = 0; i < dungeon->numObjects; i++) {
         if (dungeon->objects[i]->get_position()->x == x && 
-            dungeon->objects[i]->get_position()->y == y) {
+            dungeon->objects[i]->get_position()->y == y &&
+            dungeon->objects[i]->get_is_visible()) {
             return dungeon->objects[i];
         }
     }
@@ -205,6 +208,10 @@ void initDungeon(Dungeon* dungeon){
     dungeon->numMonsters = 0;
     dungeon->numObjects = 0;  // Initialize object count
     dungeon->monsterNeedUpdate = 0;
+    dungeon->renderMapMode = 0;
+    // Initialize the player character with default stats
+    // PC constructor will set hitpoints=50, speed=10, damage=0+1d4
+    dungeon->player = PC();
 }
 
 void setTiles(Dungeon* dungeon){
@@ -733,4 +740,44 @@ void freeDungeon(Dungeon* dungeon) {
     // Objects are owned (and deleted) by globalObjectList.
     // Here we just drop our references.
     dungeon->numObjects = 0;
+}
+
+void handlePlayerMovement(Dungeon *dungeon, int newX, int newY) {
+    // Update player position
+    dungeon->mc.x = newX;
+    dungeon->mc.y = newY;
+    
+    // Check if there's an object at the player's position
+    for (int i = 0; i < dungeon->numObjects; i++) {
+        Object *obj = dungeon->objects[i];
+        if (obj && obj->get_position() && 
+            obj->get_position()->x == newX && 
+            obj->get_position()->y == newY &&
+            obj->get_is_visible()) {  // Only try to pick up visible objects
+            
+            // Try to add to inventory if there's space
+            if (dungeon->player.hasInventorySpace()) {
+                // Add to player's inventory
+                if (dungeon->player.addToInventory(obj)) {
+                    // Mark object as picked up (still in dungeon array but no longer rendered)
+                    obj->set_is_visible(false);
+                    
+                    // Display pickup message
+                    std::string objName = obj->get_name();
+                    std::string message = "You picked up " + objName + ".";
+                    renderMessageLine(message.c_str());
+                    
+                    // If it's an artifact, mark it as picked up globally
+                    if (obj->get_is_artifact() && globalObjectList) {
+                        globalObjectList->mark_artifact_picked_up(obj->get_name());
+                    }
+                }
+            } else {
+                // If no inventory space, display message
+                renderMessageLine("Your inventory is full.");
+            }
+            // Only process one object at a time
+            break;
+        }
+    }
 }
