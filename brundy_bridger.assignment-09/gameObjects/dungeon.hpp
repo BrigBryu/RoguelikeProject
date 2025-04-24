@@ -15,8 +15,6 @@ class object_description;
 // Forward declaration
 class Dungeon;
 
-// DO NOT define a typedef for dungeon_t here - it's defined in object_descriptions.h
-// typedef Dungeon dungeon_t;
 
 #define MAX_MONSTERS 100
 #define MAX_OBJECTS 100

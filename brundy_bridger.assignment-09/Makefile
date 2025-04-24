@@ -1,8 +1,6 @@
 CC = g++
-# Add debugging symbols, disable optimization for better debugging, and enable all warnings
 CFLAGS = -g3 -O0 -Wall -Wextra -pedantic -I$(GAMEOBJECTS_DIR) -I$(UTIL_DIR)
 
-# File directories
 UTIL_DIR = util
 GAMEOBJECTS_DIR = gameObjects
 
@@ -23,7 +21,6 @@ SRC = gameScreen.cpp \
 OBJ = $(SRC:.cpp=.o)
 TARGET = assignment09
 
-# Add debug target
 .PHONY: debug
 debug: CFLAGS += -DDEBUG
 debug: $(TARGET)
@@ -37,7 +34,6 @@ $(TARGET): $(OBJ)
 clean:
 	rm -f $(OBJ) $(TARGET)
 
-# Add gdb target for quick debugging
 .PHONY: gdb
 gdb: debug
 	gdb --args ./$(TARGET)

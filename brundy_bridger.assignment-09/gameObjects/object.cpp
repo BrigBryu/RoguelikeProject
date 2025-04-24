@@ -169,7 +169,7 @@ void ObjectList::generate_objects(Dungeon* dungeon, int count) {
     }
     objects.clear();
     
-    // Check if we have object descriptions to use
+    // Check if descriptions
     bool useDescriptions = !dungeon->object_descriptions.empty();
     
     for (int attempt = 0; attempt < count * 5 && (int)objects.size() < count; attempt++) {
@@ -194,21 +194,16 @@ void ObjectList::generate_objects(Dungeon* dungeon, int count) {
         dice damage(0, 1, 1);
         
         if (useDescriptions) {
-            // Choose a random object description
             int descIndex = rand() % dungeon->object_descriptions.size();
-            // Access the description
             const object_description& desc = dungeon->object_descriptions[descIndex];
             
             name = desc.get_name();
             description = desc.get_description();
             
-            // Ensure the type is properly set from the description
             type = desc.get_type();
             
             color = desc.get_color();
             
-            // Manually generate random values instead of using roll()
-            // Use the dice's base + a random number between 1 and sides for each die
             const dice& hitDice = desc.get_hit();
             hit = hitDice.get_base();
             for (int i = 0; i < hitDice.get_number(); i++) {
@@ -253,14 +248,12 @@ void ObjectList::generate_objects(Dungeon* dungeon, int count) {
                 value += (rand() % valueDice.get_sides()) + 1;
             }
             
-            // Check for artifact - see if name contains "artifact" (case insensitive)
             std::string lowerName = name;
             for (size_t i = 0; i < lowerName.length(); i++) {
                 lowerName[i] = tolower(lowerName[i]);
             }
             isArtifact = (lowerName.find("artifact") != std::string::npos);
         } else {
-            // Generate random object properties
             type = (object_type_t)((rand() % 19) + 1);
             
             uint32_t colors[] = {COLOR_RED, COLOR_GREEN, COLOR_YELLOW, COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE};

@@ -1,4 +1,8 @@
 Change Log
+Apr 23: tried to fix expunge but it still seg faults
+Apr 22: Added in different commands L 
+Apr 21: Fixed the item parser to get discriptions and addeed plauyer inventories
+Apr 20: re did  monster parser it did not work
 Apr 16: fixed double free on object list and added objects fully
 Apr 15: add monster color and started adding in teacher objects
 Apr 14: added monsters back into dungeon

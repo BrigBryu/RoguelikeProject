@@ -1,6 +1,6 @@
 TO RUN:
 make
-./assignment06
+./assignment09
 
 Customization notes:
 some times there will be free floors (no monsters :D yay not a bug)
@@ -8,6 +8,8 @@ if monsters dont update they may be stone try moving to new level
 
 dungeon conforming to the project specifications:
 There are now both objects and monsters that move again! 
+
+I have an issue with my expunge it causes a seg fault. I have tried running gdb on it and cant find the issue. I think that there may be a double free happening but then it happens right after the expunge. I spent wedesnday trying to fix and I just try and set it to a null pointer. But I think it is close.
 Key functions:
 - updateDungeon(), gotoMode(), simulateMonsters(), dungeonDijkstraNonTunnel(), DungeonDijkstraTunnel(), generateDungeon(), renderDungeon(), readDungeon() and loadDungeon()
 - File names: object.c/hpp, dungeon.hpp, dungeon.cpp, rectangle.hpp, point.hpp, fileHandler.hpp. fileHandler.cpp, heap.hpp, heap.cpp, simulate.cpp, simulate.hpp

@@ -738,7 +738,6 @@ void freeDungeon(Dungeon* dungeon) {
     dungeon->numMonsters = 0;
     
     // Objects are owned (and deleted) by globalObjectList.
-    // Here we just drop our references.
     dungeon->numObjects = 0;
 }
 

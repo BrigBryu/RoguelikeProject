@@ -24,8 +24,6 @@ PC::PC() {
 }
 
 PC::~PC() {
-    // Note: We don't delete the objects as they are managed by the Dungeon class
-    // This just sets pointers to null
     for (int i = 0; i < 12; i++) {
         equipment[i] = nullptr;
     }
